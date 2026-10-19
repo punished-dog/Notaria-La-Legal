@@ -24,4 +24,12 @@ object Validaciones {
             ""
         }
     }
+
+    fun validarNombre(nombre: String): String {
+        return if (nombre.trim().length < 3) "Ingresa un nombre de al menos 3 caracteres." else ""
+    }
+
+    fun validarConfirmacion(contrasena: String, confirmacion: String): String {
+        return if (contrasena != confirmacion) "Las contraseñas no coinciden." else ""
+    }
 }
