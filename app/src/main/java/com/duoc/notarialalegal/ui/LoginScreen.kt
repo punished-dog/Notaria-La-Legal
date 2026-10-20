@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -99,9 +101,15 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit) {
 
             Button(
                 onClick = { viewModel.login() },
+                enabled = !viewModel.revisandoSesion,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Ingresar")
+                // Mientras se revisa si hay una sesión guardada se muestra un indicador de carga
+                if (viewModel.revisandoSesion) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Ingresar")
+                }
             }
             TextButton(onClick = onRegister) {
                 Text("Crear cuenta")
