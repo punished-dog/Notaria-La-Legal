@@ -23,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,7 +32,14 @@ import androidx.compose.ui.unit.dp
 import com.duoc.notarialalegal.viewmodel.LoginViewModel
 
 @Composable
-fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit) {
+fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSuccess: () -> Unit) {
+
+    // Cuando hay un usuario (recién ingresado o con sesión guardada en Room) pasamos al inicio
+    LaunchedEffect(viewModel.usuario) {
+        if (viewModel.usuario != null) {
+            onLoginSuccess()
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
