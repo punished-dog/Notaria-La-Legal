@@ -1,5 +1,11 @@
 package com.duoc.notarialalegal.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,11 +30,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.duoc.notarialalegal.R
 import com.duoc.notarialalegal.viewmodel.LoginViewModel
 
 @Composable
@@ -41,6 +50,9 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
         }
     }
 
+    // El logo aparece con una animación al abrir la pantalla
+    val estadoLogo = remember { MutableTransitionState(false).apply { targetState = true } }
+
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -51,6 +63,17 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            AnimatedVisibility(
+                visibleState = estadoLogo,
+                enter = fadeIn(animationSpec = tween(900)) + scaleIn(animationSpec = tween(900))
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo_notaria),
+                    contentDescription = "Logo Notaria La Legal",
+                    modifier = Modifier.size(110.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text("Notaria La Legal", style = MaterialTheme.typography.headlineMedium)
             Text("Tus trámites notariales desde el celular")
             Spacer(modifier = Modifier.height(24.dp))
