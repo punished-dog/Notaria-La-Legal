@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.duoc.notarialalegal.viewmodel.HomeViewModel
 import com.duoc.notarialalegal.viewmodel.LoginViewModel
 import com.duoc.notarialalegal.viewmodel.RegisterViewModel
 
@@ -43,12 +44,19 @@ fun Navegacion(loginViewModel: LoginViewModel) {
         composable(Rutas.INICIO) {
             val usuario = loginViewModel.usuario
             if (usuario != null) {
-                HomeScreen(usuario, onLogout = {
-                    loginViewModel.logout()
-                    navController.navigate(Rutas.LOGIN) {
-                        popUpTo(Rutas.INICIO) { inclusive = true }
+                val homeViewModel: HomeViewModel = viewModel()
+                HomeScreen(
+                    viewModel = homeViewModel,
+                    usuario = usuario,
+                    onNuevoTramite = {},
+                    onVerTramite = {},
+                    onLogout = {
+                        loginViewModel.logout()
+                        navController.navigate(Rutas.LOGIN) {
+                            popUpTo(Rutas.INICIO) { inclusive = true }
+                        }
                     }
-                })
+                )
             }
         }
     }

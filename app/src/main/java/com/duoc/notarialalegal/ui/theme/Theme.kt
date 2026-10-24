@@ -12,17 +12,23 @@ private val LightColors = lightColorScheme(
     onPrimary = Color.White,
     primaryContainer = Aqua,
     onPrimaryContainer = DarkPetroleum,
+    secondary = Gold,
+    onSecondary = Color.White,
     background = LightBackground,
     onBackground = DarkPetroleum,
     surface = LightBackground,
-    onSurface = DarkPetroleum
+    onSurface = DarkPetroleum,
+    surfaceVariant = Color.White,
+    onSurfaceVariant = DarkPetroleum
 )
 
 private val DarkColors = darkColorScheme(
     primary = Aqua,
     onPrimary = DarkPetroleum,
     primaryContainer = Petroleum,
-    onPrimaryContainer = Color.White
+    onPrimaryContainer = Color.White,
+    secondary = Gold,
+    onSecondary = DarkPetroleum
 )
 
 @Composable
