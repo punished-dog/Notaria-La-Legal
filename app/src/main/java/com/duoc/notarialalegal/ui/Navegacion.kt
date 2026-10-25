@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.duoc.notarialalegal.viewmodel.HomeViewModel
 import com.duoc.notarialalegal.viewmodel.LoginViewModel
+import com.duoc.notarialalegal.viewmodel.NuevoTramiteViewModel
 import com.duoc.notarialalegal.viewmodel.RegisterViewModel
 
 // Rutas de la app
@@ -15,6 +16,7 @@ object Rutas {
     const val LOGIN = "login"
     const val REGISTRO = "registro"
     const val INICIO = "inicio"
+    const val NUEVO_TRAMITE = "nuevo_tramite"
 }
 
 @Composable
@@ -48,7 +50,7 @@ fun Navegacion(loginViewModel: LoginViewModel) {
                 HomeScreen(
                     viewModel = homeViewModel,
                     usuario = usuario,
-                    onNuevoTramite = {},
+                    onNuevoTramite = { navController.navigate(Rutas.NUEVO_TRAMITE) },
                     onVerTramite = {},
                     onLogout = {
                         loginViewModel.logout()
@@ -57,6 +59,14 @@ fun Navegacion(loginViewModel: LoginViewModel) {
                         }
                     }
                 )
+            }
+        }
+
+        composable(Rutas.NUEVO_TRAMITE) {
+            val usuario = loginViewModel.usuario
+            if (usuario != null) {
+                val nuevoTramiteViewModel: NuevoTramiteViewModel = viewModel()
+                NuevoTramiteScreen(nuevoTramiteViewModel, usuario, onTerminar = { volver(navController) })
             }
         }
     }

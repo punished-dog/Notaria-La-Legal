@@ -32,4 +32,9 @@ object Validaciones {
     fun validarConfirmacion(contrasena: String, confirmacion: String): String {
         return if (contrasena != confirmacion) "Las contraseñas no coinciden." else ""
     }
+
+    // Se usa para los antecedentes del trámite y para las observaciones del notario
+    fun validarTextoMinimo(texto: String, campo: String): String {
+        return if (texto.trim().length < 10) "Escribe al menos 10 caracteres en $campo." else ""
+    }
 }
