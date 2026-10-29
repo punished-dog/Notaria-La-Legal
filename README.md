@@ -74,7 +74,6 @@ estado inicial al cerrar la app. Lo único que se guarda en el teléfono es la s
 ## Pruebas
 
 ```sh
-./gradlew :app:testDebugUnitTest          # validaciones de los formularios
 ./gradlew :app:connectedDebugAndroidTest  # pantallas (con un teléfono o emulador conectado)
 ```
 
