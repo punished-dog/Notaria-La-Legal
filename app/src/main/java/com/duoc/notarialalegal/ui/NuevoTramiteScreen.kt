@@ -2,11 +2,6 @@ package com.duoc.notarialalegal.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -103,12 +98,8 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                     seleccionado = viewModel.usarFormato,
                     onClick = { viewModel.cambiarOrigenDocumento(true) }
                 )
-                // La sección para adjuntar aparece y desaparece con una animación
-                AnimatedVisibility(
-                    visible = !viewModel.usarFormato,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
+                // El botón para adjuntar solo se muestra si se eligió documento propio
+                if (!viewModel.usarFormato) {
                     Column {
                         Button(onClick = { selectorArchivo.launch("*/*") }, modifier = Modifier.fillMaxWidth()) {
                             Text("Seleccionar archivo")

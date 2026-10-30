@@ -4,7 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,8 +51,8 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
         }
     }
 
-    // El logo aparece con una animación al abrir la pantalla
-    val estadoLogo = remember { MutableTransitionState(false).apply { targetState = true } }
+    // Animación de entrada: el logo y el formulario aparecen suavemente al abrir la app
+    val estadoEntrada = remember { MutableTransitionState(false).apply { targetState = true } }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -65,8 +65,9 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AnimatedVisibility(
-                visibleState = estadoLogo,
-                enter = fadeIn(animationSpec = tween(900)) + scaleIn(animationSpec = tween(900))
+                visibleState = estadoEntrada,
+                enter = fadeIn(animationSpec = tween(800)) +
+                    slideInVertically(animationSpec = tween(800)) { altura -> altura / 2 }
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.logo_la_legal),

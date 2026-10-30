@@ -1,6 +1,5 @@
 package com.duoc.notarialalegal.ui
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,7 +9,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -49,12 +47,10 @@ fun colorDeEstado(estado: String): Color {
     }
 }
 
-// Etiqueta con el estado del trámite. El color cambia con una animación
-// cuando el notario aprueba o devuelve el trámite.
+// Etiqueta con el estado del trámite, con un color distinto para cada estado
 @Composable
 fun EtiquetaEstado(estado: String) {
-    val colorFondo by animateColorAsState(targetValue = colorDeEstado(estado), label = "colorEstado")
-    Surface(color = colorFondo, shape = RoundedCornerShape(50)) {
+    Surface(color = colorDeEstado(estado), shape = RoundedCornerShape(50)) {
         Text(
             estado,
             color = Color.White,

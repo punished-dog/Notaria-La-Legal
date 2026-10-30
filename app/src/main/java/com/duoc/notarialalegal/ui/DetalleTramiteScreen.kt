@@ -2,10 +2,7 @@ package com.duoc.notarialalegal.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,10 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.duoc.notarialalegal.model.EstadoTramite
@@ -113,8 +107,6 @@ private fun ContenidoDetalle(
     usuario: Usuario,
     onSeleccionarArchivo: () -> Unit
 ) {
-    var verHistorial by remember { mutableStateOf(true) }
-
     Column(modifier = Modifier.padding(24.dp)) {
         DatosTramite(tramite)
 
@@ -149,22 +141,9 @@ private fun ContenidoDetalle(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Historial", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = { verHistorial = !verHistorial }) {
-                Text(if (verHistorial) "Ocultar" else "Mostrar")
-            }
-        }
-        AnimatedVisibility(visible = verHistorial) {
-            Column {
-                for (registro in historial) {
-                    FilaHistorial(registro)
-                }
-            }
+        Text("Historial", style = MaterialTheme.typography.titleLarge)
+        for (registro in historial) {
+            FilaHistorial(registro)
         }
     }
 }
