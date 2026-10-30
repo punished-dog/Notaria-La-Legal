@@ -8,16 +8,24 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.duoc.notarialalegal.model.EstadoTramite
+import com.duoc.notarialalegal.model.DocumentoAdjunto
 import com.duoc.notarialalegal.model.Tramite
 import com.duoc.notarialalegal.model.Usuario
 import com.duoc.notarialalegal.model.Validaciones
 import com.duoc.notarialalegal.repository.ArchivoRepository
 import com.duoc.notarialalegal.repository.TramiteRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.IOException
 import kotlinx.coroutines.launch
 
 class NuevoTramiteViewModel(application: Application) : AndroidViewModel(application) {
     private val archivoRepository = ArchivoRepository(application)
+
+    private var archivoAdjunto: DocumentoAdjunto? = null
+    var cargandoDocumento by mutableStateOf(false)
+        private set
 
     // Datos del formulario
     var tipo by mutableStateOf("")
@@ -61,9 +69,21 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
 
     // Recibe el archivo elegido en el selector de archivos del teléfono
     fun seleccionarArchivo(uri: Uri?) {
-        if (uri != null) {
-            nombreArchivo = archivoRepository.obtenerNombre(uri)
-            errorDocumento = ""
+        if (uri == null || cargandoDocumento) return
+        cargandoDocumento = true
+        errorDocumento = ""
+        viewModelScope.launch {
+            try {
+                val copia = withContext(Dispatchers.IO) { archivoRepository.guardarCopia(uri) }
+                archivoAdjunto = copia
+                nombreArchivo = copia.nombre
+            } catch (error: IOException) {
+                errorDocumento = "No se pudo copiar el documento. Inténtalo de nuevo."
+            } catch (error: SecurityException) {
+                errorDocumento = "No se puede acceder al archivo. Selecciónalo nuevamente."
+            } finally {
+                cargandoDocumento = false
+            }
         }
     }
 
@@ -83,6 +103,10 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
 
     // Revisa todos los campos y, si están bien, abre el modal de firma
     fun revisarFormulario() {
+        if (cargandoDocumento) {
+            errorDocumento = "Espera a que termine de guardarse el documento."
+            return
+        }
         errorTipo = if (tipo.isEmpty()) "Selecciona un tipo de trámite." else ""
         errorDocumento = if (!usarFormato && nombreArchivo.isEmpty()) "Adjunta un documento." else ""
         errorFirma = if (tipoFirma.isEmpty()) "Selecciona el tipo de firma." else ""
@@ -104,6 +128,7 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
     // Se muestra la firma en proceso durante un momento
     // y luego se guarda el trámite como enviado al notario.
     fun firmarYEnviar(usuario: Usuario) {
+        if (firmando || cargandoDocumento) return
         firmando = true
         viewModelScope.launch {
             delay(1500)
@@ -113,7 +138,9 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
                 tipoFirma = tipoFirma,
                 antecedentes = antecedentes.trim(),
                 estado = EstadoTramite.ENVIADO,
-                correoCliente = usuario.correo
+                correoCliente = usuario.correo,
+                rutaDocumento = if (usarFormato) "" else archivoAdjunto?.ruta.orEmpty(),
+                tipoDocumento = if (usarFormato) "application/octet-stream" else archivoAdjunto?.tipo ?: "application/octet-stream"
             )
             val guardado = TramiteRepository.crearTramite(tramite, usuario.nombre)
             firmando = false

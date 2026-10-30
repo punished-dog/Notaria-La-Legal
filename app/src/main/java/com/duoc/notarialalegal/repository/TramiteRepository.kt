@@ -85,8 +85,10 @@ object TramiteRepository {
     }
 
     // El cliente corrige el documento y lo vuelve a enviar
-    fun reenviar(tramite: Tramite, nuevoDocumento: String, comentario: String, responsable: String) {
-        actualizar(tramite.copy(estado = EstadoTramite.ENVIADO, documento = nuevoDocumento, observacion = ""))
+    fun reenviar(tramite: Tramite, nuevoDocumento: String, comentario: String, responsable: String,
+                 rutaDocumento: String, tipoDocumento: String) {
+        actualizar(tramite.copy(estado = EstadoTramite.ENVIADO, documento = nuevoDocumento, observacion = "",
+            rutaDocumento = rutaDocumento, tipoDocumento = tipoDocumento))
         var detalle = "Corrección enviada con el documento $nuevoDocumento."
         if (comentario.isNotBlank()) {
             detalle += " Comentario: ${comentario.trim()}"

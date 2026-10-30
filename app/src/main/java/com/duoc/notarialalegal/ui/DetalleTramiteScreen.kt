@@ -1,5 +1,7 @@
 package com.duoc.notarialalegal.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.duoc.notarialalegal.model.EstadoTramite
 import com.duoc.notarialalegal.model.Historial
@@ -109,11 +112,34 @@ private fun ContenidoDetalle(
     usuario: Usuario,
     onSeleccionarArchivo: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier.padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         DatosTramite(tramite)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                val uri = viewModel.obtenerUriDocumento(tramite)
+                if (uri != null) {
+                    val abrirDocumento = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, tramite.tipoDocumento)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    try {
+                        context.startActivity(abrirDocumento)
+                    } catch (error: ActivityNotFoundException) {
+                        viewModel.mostrarErrorDocumento()
+                    } catch (error: SecurityException) {
+                        viewModel.mostrarErrorDocumento()
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Ver documento")
+        }
 
         if (tramite.estado == EstadoTramite.OBSERVADO && tramite.observacion.isNotEmpty()) {
             Card(

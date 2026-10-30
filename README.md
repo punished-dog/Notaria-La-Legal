@@ -24,6 +24,9 @@ caso NotariaX.
 
 **Ambos**
 - Historial de cada trámite con fecha, estado y responsable de cada cambio.
+- Abrir el archivo adjunto desde el detalle con **Ver documento**. La app conserva una
+  copia privada en el mismo teléfono y la abre con un visor compatible instalado.
+  Los formatos y trámites de ejemplo no incluyen un archivo real.
 - La sesión queda guardada: si se cierra la app sin cerrar sesión, al abrirla se entra directo.
 
 ## Cuentas de prueba
