@@ -92,3 +92,7 @@ de ejecutarlas.
 - Andrés Vergara
 - Rodrigo Salinas
 - Josue Millahuala
+
+## Video
+
+[Ver el funcionamiento de la app](https://youtu.be/Emt4_S9r3Lk)
