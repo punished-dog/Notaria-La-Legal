@@ -3,12 +3,12 @@ package com.duoc.notarialalegal.repository
 import com.duoc.notarialalegal.model.EstadoTramite
 import com.duoc.notarialalegal.model.Historial
 import com.duoc.notarialalegal.model.Tramite
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 // Los trámites y su historial se mantienen en memoria.
 // Al abrir la app se cargan dos trámites iniciales.

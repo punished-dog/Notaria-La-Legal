@@ -2,6 +2,7 @@ package com.duoc.notarialalegal.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,16 +30,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.duoc.notarialalegal.model.EstadoTramite
 import com.duoc.notarialalegal.model.Historial
 import com.duoc.notarialalegal.model.Roles
 import com.duoc.notarialalegal.model.Tramite
 import com.duoc.notarialalegal.model.Usuario
-import com.duoc.notarialalegal.ui.theme.DarkPetroleum
 import com.duoc.notarialalegal.ui.theme.ObservationBackground
 import com.duoc.notarialalegal.ui.theme.StatusApproved
 import com.duoc.notarialalegal.ui.theme.StatusObserved
+import com.duoc.notarialalegal.ui.theme.TextoPrincipal
 import com.duoc.notarialalegal.viewmodel.DetalleTramiteViewModel
 
 @Composable
@@ -57,7 +59,7 @@ fun DetalleTramiteScreen(
         viewModel.seleccionarArchivo(uri)
     }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .safeDrawingPadding()
@@ -107,72 +109,83 @@ private fun ContenidoDetalle(
     usuario: Usuario,
     onSeleccionarArchivo: () -> Unit
 ) {
-    Column(modifier = Modifier.padding(24.dp)) {
+    Column(
+        modifier = Modifier.padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         DatosTramite(tramite)
 
         if (tramite.estado == EstadoTramite.OBSERVADO && tramite.observacion.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = ObservationBackground,
-                    contentColor = DarkPetroleum
+                    contentColor = TextoPrincipal
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Observación del notario", style = MaterialTheme.typography.titleMedium, color = StatusObserved)
+                    Text(
+                        "Observación del notario",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = StatusObserved
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(tramite.observacion)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        // Cada perfil ve solo las acciones que le corresponden según el estado
         val esNotario = usuario.rol == Roles.NOTARIO
         if (esNotario && tramite.estado == EstadoTramite.ENVIADO) {
-            AccionesNotario(viewModel, tramite, usuario)
+            TarjetaSeccion(titulo = "Revisión del notario") {
+                AccionesNotario(viewModel, tramite, usuario)
+            }
         } else if (!esNotario && tramite.estado == EstadoTramite.OBSERVADO) {
-            AccionesCliente(viewModel, tramite, usuario, onSeleccionarArchivo = onSeleccionarArchivo)
+            TarjetaSeccion(titulo = "Corregir trámite") {
+                AccionesCliente(viewModel, tramite, usuario, onSeleccionarArchivo = onSeleccionarArchivo)
+            }
         } else if (tramite.estado == EstadoTramite.APROBADO) {
             Text("Trámite finalizado. El notario aprobó la solicitud.", color = StatusApproved)
         } else if (tramite.estado == EstadoTramite.OBSERVADO) {
-            Text("El trámite está esperando la corrección del cliente.")
+            Text("El trámite está esperando la corrección del cliente.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
-            Text("El trámite está esperando la revisión del notario.")
+            Text("El trámite está esperando la revisión del notario.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Historial", style = MaterialTheme.typography.titleLarge)
-        for (registro in historial) {
-            FilaHistorial(registro)
+        TarjetaSeccion(titulo = "Historial") {
+            for (registro in historial) {
+                FilaHistorial(registro)
+            }
         }
     }
 }
 
 @Composable
 private fun DatosTramite(tramite: Tramite) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            EtiquetaEstado(tramite.estado)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Documento: ${tramite.documento}")
-            Text("Firma: ${tramite.tipoFirma}")
-            Text("Cliente: ${tramite.correoCliente}")
-            Text("Creado: ${tramite.fechaCreacion}")
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Antecedentes", style = MaterialTheme.typography.titleSmall)
-            Text(tramite.antecedentes)
-        }
+    TarjetaSeccion(titulo = "Datos del trámite") {
+        EtiquetaEstado(tramite.estado)
+        Spacer(modifier = Modifier.height(12.dp))
+        DatoTramite("Documento", tramite.documento)
+        DatoTramite("Firma", tramite.tipoFirma)
+        DatoTramite("Cliente", tramite.correoCliente)
+        DatoTramite("Creado", tramite.fechaCreacion)
+        DatoTramite("Antecedentes", tramite.antecedentes)
+    }
+}
+
+// Muestra un dato con su nombre en gris arriba
+@Composable
+private fun DatoTramite(nombre: String, valor: String) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(nombre, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(valor, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
 @Composable
 private fun AccionesNotario(viewModel: DetalleTramiteViewModel, tramite: Tramite, notario: Usuario) {
-    Text("Revisión del notario", style = MaterialTheme.typography.titleMedium)
-    Spacer(modifier = Modifier.height(8.dp))
     OutlinedTextField(
         value = viewModel.observacion,
         onValueChange = { viewModel.actualizarObservacion(it) },
@@ -186,11 +199,12 @@ private fun AccionesNotario(viewModel: DetalleTramiteViewModel, tramite: Tramite
     Button(
         onClick = { viewModel.aprobar(tramite, notario) },
         colors = ButtonDefaults.buttonColors(containerColor = StatusApproved),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().height(52.dp)
     ) {
         Text("Aprobar trámite")
     }
-    OutlinedButton(onClick = { viewModel.devolver(tramite, notario) }, modifier = Modifier.fillMaxWidth()) {
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedButton(onClick = { viewModel.devolver(tramite, notario) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
         Text("Devolver con observaciones")
     }
 }
@@ -202,14 +216,14 @@ private fun AccionesCliente(
     cliente: Usuario,
     onSeleccionarArchivo: () -> Unit
 ) {
-    Text("Corregir trámite", style = MaterialTheme.typography.titleMedium)
-    Spacer(modifier = Modifier.height(8.dp))
     OutlinedButton(onClick = onSeleccionarArchivo, modifier = Modifier.fillMaxWidth()) {
         Text("Adjuntar documento corregido")
     }
     Text(
         if (viewModel.documentoCorregido.isNotEmpty()) "Seleccionado: ${viewModel.documentoCorregido}"
-        else "Ningún archivo seleccionado"
+        else "Ningún archivo seleccionado",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp)
     )
     MensajeError(viewModel.errorCorreccion)
     Spacer(modifier = Modifier.height(8.dp))
@@ -220,7 +234,7 @@ private fun AccionesCliente(
         modifier = Modifier.fillMaxWidth()
     )
     Spacer(modifier = Modifier.height(12.dp))
-    Button(onClick = { viewModel.reenviar(tramite, cliente) }, modifier = Modifier.fillMaxWidth()) {
+    Button(onClick = { viewModel.reenviar(tramite, cliente) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
         Text("Reenviar al notario")
     }
 }
@@ -228,10 +242,13 @@ private fun AccionesCliente(
 @Composable
 private fun FilaHistorial(registro: Historial) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(registro.fecha, style = MaterialTheme.typography.bodySmall)
         Text(registro.estado, style = MaterialTheme.typography.titleSmall, color = colorDeEstado(registro.estado))
         Text(registro.detalle)
-        Text("Responsable: ${registro.responsable}", style = MaterialTheme.typography.bodySmall)
+        Text(
+            "${registro.fecha} · ${registro.responsable}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
-    HorizontalDivider()
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }

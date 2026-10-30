@@ -2,6 +2,7 @@ package com.duoc.notarialalegal.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,7 +55,7 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
         viewModel.seleccionarArchivo(uri)
     }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .safeDrawingPadding()
@@ -63,87 +64,89 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
         ) {
             EncabezadoApp(titulo = "Nuevo trámite", subtitulo = "Completa los 4 pasos", onVolver = onTerminar)
 
-            Column(modifier = Modifier.padding(24.dp)) {
-                // Paso 1: tipo de trámite
-                Text("1. Tipo de trámite", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                Box {
-                    OutlinedButton(onClick = { menuTiposAbierto = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(viewModel.tipo.ifEmpty { "Selecciona un tipo de trámite" })
-                    }
-                    DropdownMenu(expanded = menuTiposAbierto, onDismissRequest = { menuTiposAbierto = false }) {
-                        for (tipo in Catalogo.tiposTramite) {
-                            DropdownMenuItem(
-                                text = { Text(tipo) },
-                                onClick = {
-                                    viewModel.seleccionarTipo(tipo)
-                                    menuTiposAbierto = false
-                                }
-                            )
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                TarjetaSeccion(titulo = "1. Tipo de trámite") {
+                    Box {
+                        OutlinedButton(onClick = { menuTiposAbierto = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text(viewModel.tipo.ifEmpty { "Selecciona un tipo de trámite" })
+                        }
+                        DropdownMenu(expanded = menuTiposAbierto, onDismissRequest = { menuTiposAbierto = false }) {
+                            for (tipo in Catalogo.tiposTramite) {
+                                DropdownMenuItem(
+                                    text = { Text(tipo) },
+                                    onClick = {
+                                        viewModel.seleccionarTipo(tipo)
+                                        menuTiposAbierto = false
+                                    }
+                                )
+                            }
                         }
                     }
+                    MensajeError(viewModel.errorTipo)
                 }
-                MensajeError(viewModel.errorTipo)
 
-                // Paso 2: documento
-                Spacer(modifier = Modifier.height(20.dp))
-                Text("2. Documento", style = MaterialTheme.typography.titleMedium)
-                OpcionRadio(
-                    texto = "Adjuntar documento propio",
-                    seleccionado = !viewModel.usarFormato,
-                    onClick = { viewModel.cambiarOrigenDocumento(false) }
-                )
-                OpcionRadio(
-                    texto = "Usar formato predefinido",
-                    seleccionado = viewModel.usarFormato,
-                    onClick = { viewModel.cambiarOrigenDocumento(true) }
-                )
-                // El botón para adjuntar solo se muestra si se eligió documento propio
-                if (!viewModel.usarFormato) {
-                    Column {
+                TarjetaSeccion(titulo = "2. Documento") {
+                    OpcionRadio(
+                        texto = "Adjuntar documento propio",
+                        seleccionado = !viewModel.usarFormato,
+                        onClick = { viewModel.cambiarOrigenDocumento(false) }
+                    )
+                    OpcionRadio(
+                        texto = "Usar formato predefinido",
+                        seleccionado = viewModel.usarFormato,
+                        onClick = { viewModel.cambiarOrigenDocumento(true) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // El botón para adjuntar solo se muestra si se eligió documento propio
+                    if (!viewModel.usarFormato) {
                         Button(onClick = { selectorArchivo.launch("*/*") }, modifier = Modifier.fillMaxWidth()) {
                             Text("Seleccionar archivo")
                         }
                         Text(
                             if (viewModel.nombreArchivo.isNotEmpty()) "Seleccionado: ${viewModel.nombreArchivo}"
-                            else "Ningún archivo seleccionado"
+                            else "Ningún archivo seleccionado",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    } else if (viewModel.tipo.isNotEmpty()) {
+                        Text(
+                            "Se usará el formato predefinido de \"${viewModel.tipo}\".",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    MensajeError(viewModel.errorDocumento)
                 }
-                if (viewModel.usarFormato && viewModel.tipo.isNotEmpty()) {
-                    Text("Se usará el formato predefinido de \"${viewModel.tipo}\".")
-                }
-                MensajeError(viewModel.errorDocumento)
 
-                // Paso 3: firma
-                Spacer(modifier = Modifier.height(20.dp))
-                Text("3. Tipo de firma", style = MaterialTheme.typography.titleMedium)
-                for (firma in Catalogo.tiposFirma) {
-                    OpcionRadio(
-                        texto = firma,
-                        seleccionado = viewModel.tipoFirma == firma,
-                        onClick = { viewModel.seleccionarFirma(firma) }
+                TarjetaSeccion(titulo = "3. Tipo de firma") {
+                    for (firma in Catalogo.tiposFirma) {
+                        OpcionRadio(
+                            texto = firma,
+                            seleccionado = viewModel.tipoFirma == firma,
+                            onClick = { viewModel.seleccionarFirma(firma) }
+                        )
+                    }
+                    MensajeError(viewModel.errorFirma)
+                }
+
+                TarjetaSeccion(titulo = "4. Antecedentes") {
+                    OutlinedTextField(
+                        value = viewModel.antecedentes,
+                        onValueChange = { viewModel.actualizarAntecedentes(it) },
+                        label = { Text("Describe el trámite") },
+                        minLines = 3,
+                        isError = viewModel.errorAntecedentes.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    MensajeError(viewModel.errorAntecedentes)
                 }
-                MensajeError(viewModel.errorFirma)
 
-                // Paso 4: antecedentes
-                Spacer(modifier = Modifier.height(20.dp))
-                Text("4. Antecedentes", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = viewModel.antecedentes,
-                    onValueChange = { viewModel.actualizarAntecedentes(it) },
-                    label = { Text("Describe el trámite") },
-                    minLines = 3,
-                    isError = viewModel.errorAntecedentes.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                MensajeError(viewModel.errorAntecedentes)
-
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = { viewModel.revisarFormulario() }, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = { viewModel.revisarFormulario() },
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
                     Text("Revisar y firmar")
                 }
             }

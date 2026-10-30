@@ -69,7 +69,7 @@ class LoginScreenTest {
         composeRule.onNodeWithText("Nuevo trámite").performClick()
         composeRule.onNodeWithText("Revisar y firmar").performScrollTo().performClick()
         composeRule.onNodeWithText("Selecciona un tipo de trámite.").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("< Volver").performClick()
+        composeRule.onNodeWithText("← Volver").performClick()
         cerrarSesion()
     }
 }

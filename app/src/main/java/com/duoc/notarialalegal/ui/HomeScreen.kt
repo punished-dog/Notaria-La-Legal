@@ -1,5 +1,6 @@
 package com.duoc.notarialalegal.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -29,8 +31,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.duoc.notarialalegal.R
 import com.duoc.notarialalegal.model.Roles
@@ -51,67 +56,87 @@ fun HomeScreen(
     val tramites by remember(usuario) { viewModel.obtenerTramites(usuario) }
         .collectAsState(initial = emptyList())
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
-            contentPadding = PaddingValues(24.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                // Mismo logo del login, más pequeño y alineado a la izquierda
-                Column {
-                    Image(
-                        painter = painterResource(id = R.drawable.logo_la_legal),
-                        contentDescription = "Logo Notaria La Legal",
-                        modifier = Modifier.widthIn(max = 200.dp).fillMaxWidth(),
-                        contentScale = ContentScale.FillWidth
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("¡Bienvenido!", style = MaterialTheme.typography.titleLarge)
-                    Text("Hola, ${usuario.nombre} (${usuario.rol})")
-                }
-            }
-
-            item {
-                if (esNotario) {
-                    Text(
-                        "Revisa los trámites enviados y apruébalos o devuélvelos con observaciones.",
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                } else {
-                    Button(
-                        onClick = onNuevoTramite,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                    ) {
-                        Text("Nuevo trámite")
+                // Encabezado azul con el logo en blanco y el saludo
+                Surface(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 24.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.logo_la_legal),
+                                contentDescription = "Logo Notaria La Legal",
+                                modifier = Modifier.widthIn(max = 170.dp).fillMaxWidth(0.55f),
+                                contentScale = ContentScale.FillWidth,
+                                colorFilter = ColorFilter.tint(Color.White)
+                            )
+                            TextButton(onClick = { viewModel.abrirCerrarSesion() }) {
+                                Text("Cerrar sesión", color = Color.White)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            "¡Bienvenido!",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            "Hola, ${usuario.nombre} · ${usuario.rol}",
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
                     }
                 }
             }
 
             item {
-                Text(
-                    if (esNotario) "Trámites recibidos" else "Mis trámites",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    if (esNotario) {
+                        Text(
+                            "Revisa los trámites enviados y apruébalos o devuélvelos con observaciones.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Button(
+                            onClick = onNuevoTramite,
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) {
+                            Text("Nuevo trámite")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        if (esNotario) "Trámites recibidos" else "Mis trámites",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
             }
 
             if (tramites.isEmpty()) {
                 item {
-                    Text("Todavía no hay trámites registrados.")
+                    Text(
+                        "Todavía no hay trámites registrados.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
                 }
             }
 
             items(tramites, key = { it.id }) { tramite ->
                 TarjetaTramite(tramite = tramite, mostrarCliente = esNotario, onClick = { onVerTramite(tramite.id) })
-            }
-
-            item {
-                TextButton(onClick = { viewModel.abrirCerrarSesion() }) {
-                    Text("Cerrar sesión")
-                }
             }
         }
     }
@@ -141,9 +166,10 @@ fun HomeScreen(
 @Composable
 private fun TarjetaTramite(tramite: Tramite, mostrarCliente: Boolean, onClick: () -> Unit) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier
+            .padding(horizontal = 20.dp)
             .fillMaxWidth()
             .clickable { onClick() }
     ) {
@@ -153,16 +179,30 @@ private fun TarjetaTramite(tramite: Tramite, mostrarCliente: Boolean, onClick: (
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(tramite.codigo(), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    tramite.codigo(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
                 EtiquetaEstado(tramite.estado)
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(tramite.tipo, style = MaterialTheme.typography.bodyLarge)
-            Text("Firma: ${tramite.tipoFirma}", style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(tramite.tipo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                tramite.tipoFirma,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             if (mostrarCliente) {
-                Text("Cliente: ${tramite.correoCliente}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Cliente: ${tramite.correoCliente}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Text("Toca para ver el detalle", color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Ver detalle ›", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
         }
     }
 }

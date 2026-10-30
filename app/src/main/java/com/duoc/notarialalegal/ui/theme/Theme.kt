@@ -1,44 +1,44 @@
 package com.duoc.notarialalegal.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
-private val LightColors = lightColorScheme(
-    primary = Petroleum,
+// La app usa siempre el tema claro para mantener el diseño blanco con azul
+private val ColoresApp = lightColorScheme(
+    primary = Azul,
     onPrimary = Color.White,
-    primaryContainer = Aqua,
-    onPrimaryContainer = DarkPetroleum,
-    secondary = Gold,
+    primaryContainer = AzulClaro,
+    onPrimaryContainer = AzulOscuro,
+    secondary = AzulOscuro,
     onSecondary = Color.White,
-    background = LightBackground,
-    onBackground = DarkPetroleum,
-    surface = LightBackground,
-    onSurface = DarkPetroleum,
+    background = FondoApp,
+    onBackground = TextoPrincipal,
+    surface = FondoApp,
+    onSurface = TextoPrincipal,
     surfaceVariant = Color.White,
-    onSurfaceVariant = DarkPetroleum
+    onSurfaceVariant = TextoSecundario,
+    outline = Borde
 )
 
-private val DarkColors = darkColorScheme(
-    primary = Aqua,
-    onPrimary = DarkPetroleum,
-    primaryContainer = Petroleum,
-    onPrimaryContainer = Color.White,
-    secondary = Gold,
-    onSecondary = DarkPetroleum
+// Bordes redondeados para campos de texto, tarjetas y modales
+private val FormasApp = Shapes(
+    extraSmall = RoundedCornerShape(12.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp)
 )
 
 @Composable
-fun NotariaLaLegalTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
+fun NotariaLaLegalTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = ColoresApp,
         typography = Typography,
+        shapes = FormasApp,
         content = content
     )
 }

@@ -1,5 +1,6 @@
 package com.duoc.notarialalegal.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -20,72 +22,85 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.duoc.notarialalegal.R
 import com.duoc.notarialalegal.viewmodel.RegisterViewModel
 
 @Composable
 fun RegisterScreen(viewModel: RegisterViewModel, onBack: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .safeDrawingPadding()
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Notaria La Legal", style = MaterialTheme.typography.headlineMedium)
+            Image(
+                painter = painterResource(id = R.drawable.logo_la_legal),
+                contentDescription = "Logo Notaria La Legal",
+                modifier = Modifier.widthIn(max = 220.dp).fillMaxWidth(),
+                contentScale = ContentScale.FillWidth
+            )
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Crear cuenta", style = MaterialTheme.typography.titleLarge)
-            Text("Las cuentas nuevas se crean con el perfil de cliente.")
-            Spacer(modifier = Modifier.height(16.dp))
+            TarjetaSeccion(titulo = "Crear cuenta") {
+                Text(
+                    "Las cuentas nuevas se crean con el perfil de cliente.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = viewModel.name,
-                onValueChange = { viewModel.updateName(it) },
-                label = { Text("Nombre completo") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = viewModel.email,
-                onValueChange = { viewModel.updateEmail(it) },
-                label = { Text("Correo electrónico") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = viewModel.password,
-                onValueChange = { viewModel.updatePassword(it) },
-                label = { Text("Contraseña") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = viewModel.confirmPassword,
-                onValueChange = { viewModel.updateConfirmPassword(it) },
-                label = { Text("Confirmar contraseña") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (viewModel.error.isNotEmpty()) {
-                Text(viewModel.error, color = MaterialTheme.colorScheme.error)
+                OutlinedTextField(
+                    value = viewModel.name,
+                    onValueChange = { viewModel.updateName(it) },
+                    label = { Text("Nombre completo") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = viewModel.email,
+                    onValueChange = { viewModel.updateEmail(it) },
+                    label = { Text("Correo electrónico") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = viewModel.password,
+                    onValueChange = { viewModel.updatePassword(it) },
+                    label = { Text("Contraseña") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = viewModel.confirmPassword,
+                    onValueChange = { viewModel.updateConfirmPassword(it) },
+                    label = { Text("Confirmar contraseña") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                MensajeError(viewModel.error)
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(onClick = { viewModel.register() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text("Registrarme")
+                }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { viewModel.register() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Registrarme")
-            }
+            Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onBack) {
                 Text("Volver al login")
             }

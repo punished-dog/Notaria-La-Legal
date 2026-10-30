@@ -6,8 +6,7 @@ con observaciones para que el cliente lo corrija. En todo momento se puede ver e
 cada trámite y qué cambios ha tenido.
 
 Proyecto de la asignatura Desarrollo de Aplicaciones Móviles (DSY1105), Duoc UC, basado en el
-caso NotariaX. Es un prototipo: los usuarios, documentos y firmas son ficticios y la firma
-electrónica solo se simula.
+caso NotariaX.
 
 ## Funcionalidades
 
