@@ -34,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -74,9 +73,8 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
                 Image(
                     painter = painterResource(id = R.drawable.logo_la_legal),
                     contentDescription = "Logo Notaria La Legal",
-                    modifier = Modifier.widthIn(max = 340.dp).fillMaxWidth().height(116.dp),
-                    contentScale = ContentScale.Fit,
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
+                    modifier = Modifier.widthIn(max = 300.dp).fillMaxWidth(),
+                    contentScale = ContentScale.FillWidth
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
