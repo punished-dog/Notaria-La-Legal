@@ -12,8 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -30,6 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.duoc.notarialalegal.R
@@ -58,17 +59,19 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Mismo logo del login, más pequeño y alineado a la izquierda
+                Column {
                     Image(
-                        painter = painterResource(id = R.drawable.logo_notaria),
+                        painter = painterResource(id = R.drawable.logo_la_legal),
                         contentDescription = "Logo Notaria La Legal",
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier.widthIn(max = 200.dp).fillMaxWidth().height(60.dp),
+                        contentScale = ContentScale.Fit,
+                        alignment = Alignment.CenterStart,
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("¡Bienvenido!", style = MaterialTheme.typography.titleLarge)
-                        Text("Hola, ${usuario.nombre} (${usuario.rol})")
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("¡Bienvenido!", style = MaterialTheme.typography.titleLarge)
+                    Text("Hola, ${usuario.nombre} (${usuario.rol})")
                 }
             }
 
