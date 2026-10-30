@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -33,7 +34,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -68,15 +72,22 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
                 enter = fadeIn(animationSpec = tween(900)) + scaleIn(animationSpec = tween(900))
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.logo_notaria),
+                    painter = painterResource(id = R.drawable.logo_la_legal),
                     contentDescription = "Logo Notaria La Legal",
-                    modifier = Modifier.size(110.dp)
+                    modifier = Modifier.widthIn(max = 340.dp).fillMaxWidth().height(116.dp),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Notaria La Legal", style = MaterialTheme.typography.headlineMedium)
-            Text("Tus trámites notariales desde el celular")
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "Tus trámites notariales desde el celular",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 "Iniciar sesión",
