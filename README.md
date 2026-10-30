@@ -61,8 +61,13 @@ app/src/main/java/com/duoc/notarialalegal/
 │                          base de datos Room, catálogo y validaciones
 ├── repository/            De dónde salen los datos (usuarios, trámites, sesión y archivos)
 ├── viewmodel/             Estado y lógica de cada pantalla
-└── ui/                    Pantallas en Compose, navegación y tema de colores
+└── ui/                    Todas las pantallas, componentes y navegación
+    └── theme/             Colores, tipografía y tema compartido
 ```
+
+Cada pantalla está directamente en `ui/` y su ViewModel en `viewmodel/`. No se mezclan
+carpetas por pantalla con carpetas por capa. Los modelos se guardan en `model/` y el
+acceso a datos en `repository/`.
 
 La vista nunca modifica los datos directamente: cada pantalla le avisa a su ViewModel lo que hizo
 el usuario, el ViewModel valida y le pide los cambios al repositorio, y la pantalla se actualiza
