@@ -11,7 +11,7 @@ object EstadoTramite {
     const val APROBADO = "Aprobado"
 }
 
-// Catálogo ficticio usado en el formulario de nuevo trámite.
+// Opciones que se muestran en el formulario de nuevo trámite.
 object Catalogo {
     val tiposTramite = listOf(
         "Autorización de documento",

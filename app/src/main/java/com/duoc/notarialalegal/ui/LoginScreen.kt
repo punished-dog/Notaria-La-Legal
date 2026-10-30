@@ -21,8 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -153,18 +151,6 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
             }
             TextButton(onClick = onRegister) {
                 Text("Crear cuenta")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Cuentas de prueba", style = MaterialTheme.typography.titleMedium)
-                    Text("Cliente: demo@lalegal.test / Demo1234")
-                    Text("Notario: notario@lalegal.test / Notario123")
-                }
             }
         }
     }

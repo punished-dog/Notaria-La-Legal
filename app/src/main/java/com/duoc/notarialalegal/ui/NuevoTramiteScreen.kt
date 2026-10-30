@@ -24,7 +24,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -95,14 +94,14 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                 Spacer(modifier = Modifier.height(20.dp))
                 Text("2. Documento", style = MaterialTheme.typography.titleMedium)
                 OpcionRadio(
-                    texto = "Usar formato predefinido",
-                    seleccionado = viewModel.usarFormato,
-                    onClick = { viewModel.cambiarOrigenDocumento(true) }
-                )
-                OpcionRadio(
                     texto = "Adjuntar documento propio",
                     seleccionado = !viewModel.usarFormato,
                     onClick = { viewModel.cambiarOrigenDocumento(false) }
+                )
+                OpcionRadio(
+                    texto = "Usar formato predefinido",
+                    seleccionado = viewModel.usarFormato,
+                    onClick = { viewModel.cambiarOrigenDocumento(true) }
                 )
                 // La sección para adjuntar aparece y desaparece con una animación
                 AnimatedVisibility(
@@ -135,10 +134,6 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                         onClick = { viewModel.seleccionarFirma(firma) }
                     )
                 }
-                Text(
-                    "La firma es simulada: no se usa e-token, certificado digital ni datos biométricos.",
-                    style = MaterialTheme.typography.bodySmall
-                )
                 MensajeError(viewModel.errorFirma)
 
                 // Paso 4: antecedentes
@@ -155,14 +150,6 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                 )
                 MensajeError(viewModel.errorAntecedentes)
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = viewModel.aceptaDeclaracion,
-                        onCheckedChange = { viewModel.cambiarDeclaracion(it) }
-                    )
-                    Text("Confirmo que los datos y documentos son ficticios")
-                }
-                MensajeError(viewModel.errorDeclaracion)
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = { viewModel.revisarFormulario() }, modifier = Modifier.fillMaxWidth()) {
@@ -172,7 +159,7 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
         }
     }
 
-    // Modal de confirmación y firma simulada
+    // Modal para confirmar los datos y firmar
     if (viewModel.mostrarConfirmacion) {
         AlertDialog(
             onDismissRequest = { viewModel.cancelarConfirmacion() },

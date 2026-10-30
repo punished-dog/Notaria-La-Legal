@@ -109,15 +109,8 @@ fun HomeScreen(
             }
 
             item {
-                Column {
-                    Text(
-                        "Todos los datos son ficticios y solo sirven para la demostración.",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    TextButton(onClick = { viewModel.abrirCerrarSesion() }) {
-                        Text("Cerrar sesión")
-                    }
+                TextButton(onClick = { viewModel.abrirCerrarSesion() }) {
+                    Text("Cerrar sesión")
                 }
             }
         }

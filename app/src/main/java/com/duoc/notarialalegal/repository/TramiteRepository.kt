@@ -10,19 +10,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Los trámites y su historial se mantienen en memoria con datos ficticios.
-// Al cerrar la app vuelven a quedar solo los dos trámites de ejemplo.
+// Los trámites y su historial se mantienen en memoria.
+// Al abrir la app se cargan dos trámites iniciales.
 object TramiteRepository {
     private val tramites = MutableStateFlow(
         listOf(
             Tramite(
                 id = 2,
                 tipo = "Declaración jurada",
-                documento = "declaracion_ejemplo.pdf",
+                documento = "declaracion_domicilio.pdf",
                 tipoFirma = "Firma electrónica avanzada",
-                antecedentes = "Declaración de domicilio ficticia para la demostración.",
+                antecedentes = "Declaración jurada de domicilio solicitada por el banco para abrir una cuenta.",
                 estado = EstadoTramite.OBSERVADO,
-                observacion = "Adjunta una versión completa del documento de ejemplo.",
+                observacion = "El documento está incompleto: falta la página con la dirección y la firma.",
                 correoCliente = "demo@lalegal.test",
                 fechaCreacion = "26/10/2026 16:40"
             ),
@@ -31,7 +31,7 @@ object TramiteRepository {
                 tipo = "Autorización de documento",
                 documento = "Formato predefinido: Autorización de documento",
                 tipoFirma = "Firma electrónica simple",
-                antecedentes = "Documento de ejemplo para probar el flujo de revisión.",
+                antecedentes = "Autorización de firma para el contrato de arriendo del departamento.",
                 estado = EstadoTramite.ENVIADO,
                 correoCliente = "demo@lalegal.test",
                 fechaCreacion = "27/10/2026 10:15"
@@ -41,9 +41,9 @@ object TramiteRepository {
 
     private val historial = MutableStateFlow(
         listOf(
-            Historial(2, EstadoTramite.ENVIADO, "Trámite creado y firmado (Firma electrónica avanzada).", "Usuario de prueba", "26/10/2026 16:40"),
-            Historial(1, EstadoTramite.ENVIADO, "Trámite creado y firmado (Firma electrónica simple).", "Usuario de prueba", "27/10/2026 10:15"),
-            Historial(2, EstadoTramite.OBSERVADO, "Adjunta una versión completa del documento de ejemplo.", "Notaria de prueba", "27/10/2026 09:05")
+            Historial(2, EstadoTramite.ENVIADO, "Trámite creado y firmado (Firma electrónica avanzada).", "Juan Doe", "26/10/2026 16:40"),
+            Historial(1, EstadoTramite.ENVIADO, "Trámite creado y firmado (Firma electrónica simple).", "Juan Doe", "27/10/2026 10:15"),
+            Historial(2, EstadoTramite.OBSERVADO, "El documento está incompleto: falta la página con la dirección y la firma.", "Ricardo Muñoz", "27/10/2026 09:05")
         )
     )
 

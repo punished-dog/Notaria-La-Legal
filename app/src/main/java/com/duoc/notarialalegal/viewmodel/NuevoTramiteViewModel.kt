@@ -22,15 +22,13 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
     // Datos del formulario
     var tipo by mutableStateOf("")
         private set
-    var usarFormato by mutableStateOf(true)
+    var usarFormato by mutableStateOf(false)
         private set
     var nombreArchivo by mutableStateOf("")
         private set
     var tipoFirma by mutableStateOf("")
         private set
     var antecedentes by mutableStateOf("")
-        private set
-    var aceptaDeclaracion by mutableStateOf(false)
         private set
 
     // Mensajes de error de cada campo
@@ -41,8 +39,6 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
     var errorFirma by mutableStateOf("")
         private set
     var errorAntecedentes by mutableStateOf("")
-        private set
-    var errorDeclaracion by mutableStateOf("")
         private set
 
     // Estado de los modales
@@ -81,11 +77,6 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
         errorAntecedentes = ""
     }
 
-    fun cambiarDeclaracion(valor: Boolean) {
-        aceptaDeclaracion = valor
-        errorDeclaracion = ""
-    }
-
     fun nombreDocumento(): String {
         return if (usarFormato) "Formato predefinido: $tipo" else nombreArchivo
     }
@@ -96,10 +87,9 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
         errorDocumento = if (!usarFormato && nombreArchivo.isEmpty()) "Adjunta un documento." else ""
         errorFirma = if (tipoFirma.isEmpty()) "Selecciona el tipo de firma." else ""
         errorAntecedentes = Validaciones.validarTextoMinimo(antecedentes, "los antecedentes")
-        errorDeclaracion = if (!aceptaDeclaracion) "Debes confirmar que los datos son ficticios." else ""
 
         val formularioValido = errorTipo.isEmpty() && errorDocumento.isEmpty() && errorFirma.isEmpty() &&
-            errorAntecedentes.isEmpty() && errorDeclaracion.isEmpty()
+            errorAntecedentes.isEmpty()
         if (formularioValido) {
             mostrarConfirmacion = true
         }
@@ -111,7 +101,7 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    // La firma es simulada: se espera un momento para representar el proceso
+    // Se muestra la firma en proceso durante un momento
     // y luego se guarda el trámite como enviado al notario.
     fun firmarYEnviar(usuario: Usuario) {
         firmando = true
