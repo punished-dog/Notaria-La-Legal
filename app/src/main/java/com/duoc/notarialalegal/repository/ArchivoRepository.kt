@@ -7,16 +7,18 @@ import androidx.core.content.FileProvider
 import com.duoc.notarialalegal.model.DocumentoAdjunto
 import java.io.File
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-// Lee la información del archivo que el usuario eligió con el selector de Android.
-// Conserva una copia privada en el mismo teléfono; no se sube a un servidor.
+// Maneja los documentos que el usuario adjunta, ya sea desde el selector de archivos
+// o tomando una foto con la cámara. Se guarda una copia privada en el mismo teléfono.
 class ArchivoRepository(private val context: Context) {
 
     // Se llama desde un hilo de IO para no bloquear la pantalla.
     fun guardarCopia(uri: Uri): DocumentoAdjunto {
         val nombre = obtenerNombre(uri)
-        val carpeta = File(context.filesDir, "documentos")
-        if (!carpeta.exists() && !carpeta.mkdirs()) throw IOException("No se pudo crear la carpeta")
+        val carpeta = carpetaDocumentos()
         val extension = nombre.substringAfterLast('.', "bin").filter { it.isLetterOrDigit() }.take(10).ifEmpty { "bin" }
         val copia = File.createTempFile("adjunto_", ".$extension", carpeta)
         try {
@@ -31,11 +33,29 @@ class ArchivoRepository(private val context: Context) {
         }
     }
 
+    // Crea el archivo vacío donde la cámara guardará la foto del documento
+    fun crearArchivoFoto(): DocumentoAdjunto {
+        val foto = File.createTempFile("foto_", ".jpg", carpetaDocumentos())
+        val fecha = SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())
+        return DocumentoAdjunto("Foto_$fecha.jpg", foto.absolutePath, "image/jpeg")
+    }
+
+    // Se usa cuando el usuario cancela la foto, para no dejar archivos vacíos
+    fun eliminarArchivo(ruta: String) {
+        File(ruta).delete()
+    }
+
     fun obtenerUri(ruta: String): Uri? {
         if (ruta.isBlank()) return null
         val archivo = File(ruta)
         if (!archivo.isFile) return null
         return FileProvider.getUriForFile(context, "${context.packageName}.documentos", archivo)
+    }
+
+    private fun carpetaDocumentos(): File {
+        val carpeta = File(context.filesDir, "documentos")
+        if (!carpeta.exists() && !carpeta.mkdirs()) throw IOException("No se pudo crear la carpeta")
+        return carpeta
     }
 
     private fun obtenerNombre(uri: Uri): String {

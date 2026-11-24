@@ -26,6 +26,8 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
     private val tramiteRepository = TramiteRepository()
 
     private var archivoAdjunto: DocumentoAdjunto? = null
+    // Archivo preparado para la cámara mientras el usuario toma la foto
+    private var fotoPendiente: DocumentoAdjunto? = null
     var cargandoDocumento by mutableStateOf(false)
         private set
 
@@ -89,6 +91,37 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
                 cargandoDocumento = false
             }
         }
+    }
+
+    // Prepara el archivo donde la cámara guardará la foto y devuelve su Uri
+    fun prepararFoto(): Uri? {
+        if (cargandoDocumento) return null
+        return try {
+            val foto = archivoRepository.crearArchivoFoto()
+            fotoPendiente = foto
+            archivoRepository.obtenerUri(foto.ruta)
+        } catch (excepcion: IOException) {
+            errorDocumento = "No se pudo preparar la cámara. Inténtalo de nuevo."
+            null
+        }
+    }
+
+    // Recibe el resultado de la cámara: si la foto se tomó, queda como documento adjunto
+    fun recibirFoto(fotoTomada: Boolean) {
+        val foto = fotoPendiente ?: return
+        fotoPendiente = null
+        if (fotoTomada) {
+            archivoAdjunto = foto
+            nombreArchivo = foto.nombre
+            errorDocumento = ""
+        } else {
+            archivoRepository.eliminarArchivo(foto.ruta)
+        }
+    }
+
+    fun camaraNoDisponible() {
+        recibirFoto(false)
+        errorDocumento = "No se encontró una aplicación de cámara en el teléfono."
     }
 
     fun seleccionarFirma(valor: String) {

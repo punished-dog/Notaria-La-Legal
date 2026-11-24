@@ -1,5 +1,6 @@
 package com.duoc.notarialalegal.ui
 
+import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +56,13 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
         viewModel.seleccionarArchivo(uri)
     }
 
+    // Abre la cámara del teléfono para fotografiar el documento (segundo recurso nativo)
+    val camara = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { fotoTomada ->
+        viewModel.recibirFoto(fotoTomada)
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -102,8 +110,25 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                     Spacer(modifier = Modifier.height(8.dp))
                     // El botón para adjuntar solo se muestra si se eligió documento propio
                     if (!viewModel.usarFormato) {
-                        Button(onClick = { selectorArchivo.launch("*/*") }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Seleccionar archivo")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { selectorArchivo.launch("*/*") }, modifier = Modifier.weight(1f)) {
+                                Text("Elegir archivo")
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    val uriFoto = viewModel.prepararFoto()
+                                    if (uriFoto != null) {
+                                        try {
+                                            camara.launch(uriFoto)
+                                        } catch (error: ActivityNotFoundException) {
+                                            viewModel.camaraNoDisponible()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Tomar foto")
+                            }
                         }
                         Text(
                             if (viewModel.nombreArchivo.isNotEmpty()) "Seleccionado: ${viewModel.nombreArchivo}"
