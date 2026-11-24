@@ -9,6 +9,7 @@ import com.duoc.notarialalegal.remote.RetrofitInstance
 import com.duoc.notarialalegal.remote.aApi
 import com.duoc.notarialalegal.remote.aModelo
 import com.duoc.notarialalegal.remote.llamarApi
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,6 +69,14 @@ class TramiteRepository(private val api: ApiService = RetrofitInstance.api) {
             detalle += " Comentario: ${comentario.trim()}"
         }
         registrarCambio(tramite.id, EstadoTramite.ENVIADO, detalle, responsable)
+    }
+
+    // El cliente puede retirar un trámite que todavía no está aprobado
+    suspend fun eliminar(tramite: Tramite) {
+        val respuesta = llamarApi { api.eliminarTramite(tramite.id) }
+        if (!respuesta.isSuccessful) {
+            throw IOException("No se pudo eliminar el trámite ${tramite.codigo()}")
+        }
     }
 
     // El id va en la ruta, por eso no se envía dentro del cuerpo

@@ -56,6 +56,12 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
     var errorCorreccion by mutableStateOf("")
         private set
 
+    // Modal para confirmar la eliminación y aviso para volver al inicio
+    var mostrarConfirmarEliminar by mutableStateOf(false)
+        private set
+    var tramiteEliminado by mutableStateOf(false)
+        private set
+
     var mensaje by mutableStateOf("")
         private set
 
@@ -134,6 +140,32 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
             archivoAdjunto = null
             documentoCorregido = ""
             comentario = ""
+        }
+    }
+
+    fun pedirConfirmarEliminar() {
+        mostrarConfirmarEliminar = true
+    }
+
+    fun cancelarEliminar() {
+        if (!procesando) {
+            mostrarConfirmarEliminar = false
+        }
+    }
+
+    fun eliminar(tramite: Tramite) {
+        if (procesando) return
+        procesando = true
+        viewModelScope.launch {
+            try {
+                tramiteRepository.eliminar(tramite)
+                tramiteEliminado = true
+            } catch (excepcion: IOException) {
+                mensaje = Mensajes.SIN_CONEXION
+            } finally {
+                procesando = false
+                mostrarConfirmarEliminar = false
+            }
         }
     }
 

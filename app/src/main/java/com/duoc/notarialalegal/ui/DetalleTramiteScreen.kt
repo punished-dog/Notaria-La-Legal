@@ -56,6 +56,13 @@ fun DetalleTramiteScreen(
         viewModel.cargar(tramiteId)
     }
 
+    // Cuando el cliente elimina el trámite se vuelve al inicio
+    LaunchedEffect(viewModel.tramiteEliminado) {
+        if (viewModel.tramiteEliminado) {
+            onVolver()
+        }
+    }
+
     val selectorArchivo = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -95,6 +102,26 @@ fun DetalleTramiteScreen(
                 )
             }
         }
+    }
+
+    // Modal para confirmar que el cliente quiere eliminar el trámite
+    val tramiteCargado = viewModel.tramite
+    if (viewModel.mostrarConfirmarEliminar && tramiteCargado != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelarEliminar() },
+            title = { Text("Eliminar trámite") },
+            text = { Text("¿Quieres eliminar el trámite ${tramiteCargado.codigo()}? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.eliminar(tramiteCargado) }, enabled = !viewModel.procesando) {
+                    Text("Sí, eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelarEliminar() }, enabled = !viewModel.procesando) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     if (viewModel.mensaje.isNotEmpty()) {
@@ -190,6 +217,17 @@ private fun ContenidoDetalle(
         TarjetaSeccion(titulo = "Historial") {
             for (registro in historial) {
                 FilaHistorial(registro)
+            }
+        }
+
+        // El cliente puede retirar su trámite mientras no esté aprobado
+        if (!esNotario && tramite.estado != EstadoTramite.APROBADO) {
+            TextButton(
+                onClick = { viewModel.pedirConfirmarEliminar() },
+                enabled = !viewModel.procesando,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Eliminar trámite", color = MaterialTheme.colorScheme.error)
             }
         }
     }
