@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="fondo_app">#FFF4F7FC</color>
+    <color name="fondo_icono">#FF1E40AF</color>
 </resources>
