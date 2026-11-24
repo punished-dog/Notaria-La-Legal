@@ -1,0 +1,5 @@
+# Copiar como firma.properties y completar con la clave de firma local.
+storeFile=/ruta/absoluta/firma-release.jks
+storePassword=COMPLETAR
+keyAlias=notaria-release
+keyPassword=COMPLETAR

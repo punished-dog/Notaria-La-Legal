@@ -1,7 +1,5 @@
 package com.duoc.notarialalegal.ui
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,13 +45,6 @@ import com.duoc.notarialalegal.viewmodel.NuevoTramiteViewModel
 fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTerminar: () -> Unit) {
     // Solo controla si la lista desplegable está abierta, por eso queda en la vista
     var menuTiposAbierto by remember { mutableStateOf(false) }
-
-    // Abre el selector de archivos del sistema (recurso nativo del teléfono)
-    val selectorArchivo = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        viewModel.seleccionarArchivo(uri)
-    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -102,9 +93,12 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                     Spacer(modifier = Modifier.height(8.dp))
                     // El botón para adjuntar solo se muestra si se eligió documento propio
                     if (!viewModel.usarFormato) {
-                        Button(onClick = { selectorArchivo.launch("*/*") }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Seleccionar archivo")
-                        }
+                        SelectorDocumento(
+                            habilitado = !viewModel.cargandoDocumento && !viewModel.firmando,
+                            onSeleccionar = viewModel::seleccionarArchivo,
+                            onPrepararFoto = viewModel::prepararFoto,
+                            onErrorCamara = viewModel::mostrarErrorCamara
+                        )
                         Text(
                             if (viewModel.nombreArchivo.isNotEmpty()) "Seleccionado: ${viewModel.nombreArchivo}"
                             else "Ningún archivo seleccionado",
@@ -160,6 +154,7 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
             title = { Text("Confirmar y firmar") },
             text = {
                 Column {
+                    MensajeError(viewModel.errorEnvio)
                     Text("Tipo: ${viewModel.tipo}")
                     Text("Documento: ${viewModel.nombreDocumento()}")
                     Text("Firma: ${viewModel.tipoFirma}")
@@ -168,7 +163,7 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("Firmando documento...")
+                            Text("Enviando trámite...")
                         }
                     } else {
                         Text("Al confirmar, el trámite se enviará al notario para su revisión.")

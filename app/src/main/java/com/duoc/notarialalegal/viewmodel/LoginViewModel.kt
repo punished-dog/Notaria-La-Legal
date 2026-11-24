@@ -9,16 +9,17 @@ import androidx.lifecycle.viewModelScope
 import com.duoc.notarialalegal.model.AppDatabase
 import com.duoc.notarialalegal.model.Usuario
 import com.duoc.notarialalegal.model.Validaciones
+import com.duoc.notarialalegal.network.mensajeDeError
+import com.duoc.notarialalegal.repository.SesionActual
 import com.duoc.notarialalegal.repository.SesionRepository
+import com.duoc.notarialalegal.repository.TramiteRepository
 import com.duoc.notarialalegal.repository.UsuarioRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
-// Este ViewModel se crea en MainActivity, por eso también guarda la sesión
-// (el usuario que ingresó) mientras la app está abierta.
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
-    private val sesionRepository = SesionRepository(AppDatabase.obtenerBaseDatos(application).sesionDao())
-
-    // Estos valores se muestran en la pantalla. Solo el ViewModel los modifica.
+    private val sesiones = SesionRepository(AppDatabase.obtenerBaseDatos(application).sesionDao())
     var email by mutableStateOf("")
         private set
     var password by mutableStateOf("")
@@ -35,58 +36,63 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     init {
-        // Si quedó una sesión guardada en Room, el usuario entra directo
         viewModelScope.launch {
-            usuario = sesionRepository.obtenerSesion()
-            revisandoSesion = false
+            try {
+                val guardado = sesiones.obtenerSesion()
+                if (guardado != null) {
+                    try {
+                        val actual = UsuarioRepository.obtenerUsuarioActual()
+                        sesiones.guardarSesion(actual, SesionActual.token)
+                        usuario = actual
+                    } catch (error: HttpException) {
+                        if (error.code() == 401 || error.code() == 403) sesiones.cerrarSesion()
+                        loginError = mensajeDeError(error)
+                    } catch (error: java.io.IOException) {
+                        // Se permite entrar y reintentar la carga, sin inventar datos del servidor.
+                        usuario = guardado
+                    }
+                }
+            } catch (error: CancellationException) { throw error
+            } catch (error: Exception) { loginError = mensajeDeError(error)
+            } finally { revisandoSesion = false }
         }
     }
-
-    fun updateEmail(newEmail: String) {
-        email = newEmail
-        emailError = ""
-        loginError = ""
-    }
-
-    fun updatePassword(newPassword: String) {
-        password = newPassword
-        passwordError = ""
-        loginError = ""
-    }
-
+    fun updateEmail(valor: String) { email = valor; emailError = ""; loginError = "" }
+    fun updatePassword(valor: String) { password = valor; passwordError = ""; loginError = "" }
     fun login() {
+        if (revisandoSesion) return
         email = email.trim()
         emailError = Validaciones.validarCorreo(email)
         passwordError = Validaciones.validarContrasena(password)
+        if (emailError.isNotEmpty() || passwordError.isNotEmpty()) return
+        val correo = email
+        val clave = password
+        revisandoSesion = true
         loginError = ""
-
-        // Si hay errores, no se intenta iniciar sesión.
-        if (emailError.isNotEmpty() || passwordError.isNotEmpty()) {
-            return
-        }
-
-        val encontrado = UsuarioRepository.iniciarSesion(email, password)
-        if (encontrado == null) {
-            loginError = "Correo o contraseña incorrectos."
-            return
-        }
-
         viewModelScope.launch {
-            sesionRepository.guardarSesion(encontrado)
-            password = ""
-            usuario = encontrado
+            try {
+                val acceso = UsuarioRepository.iniciarSesion(correo, clave)
+                val actual = acceso.user.aUsuario()
+                TramiteRepository.limpiar()
+                sesiones.guardarSesion(actual, acceso.authToken)
+                password = ""
+                usuario = actual
+            } catch (error: CancellationException) { throw error
+            } catch (error: Exception) { loginError = mensajeDeError(error)
+            } finally { revisandoSesion = false }
         }
     }
-
     fun logout() {
-        usuario = null
-        email = ""
-        password = ""
-        emailError = ""
-        passwordError = ""
-        loginError = ""
+        if (revisandoSesion) return
+        revisandoSesion = true
         viewModelScope.launch {
-            sesionRepository.cerrarSesion()
+            try {
+                sesiones.cerrarSesion()
+                usuario = null
+                email = ""; password = ""; emailError = ""; passwordError = ""; loginError = ""
+            } catch (error: CancellationException) { throw error
+            } catch (error: Exception) { loginError = mensajeDeError(error)
+            } finally { revisandoSesion = false }
         }
     }
 }

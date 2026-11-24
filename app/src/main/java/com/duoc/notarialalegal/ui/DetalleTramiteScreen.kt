@@ -2,8 +2,6 @@ package com.duoc.notarialalegal.ui
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -56,12 +55,7 @@ fun DetalleTramiteScreen(
     val tramite by remember(tramiteId) { viewModel.obtenerTramite(tramiteId) }.collectAsState(initial = null)
     val historial by remember(tramiteId) { viewModel.obtenerHistorial(tramiteId) }.collectAsState(initial = emptyList())
 
-    val selectorArchivo = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        viewModel.seleccionarArchivo(uri)
-    }
-
+    LaunchedEffect(tramiteId) { viewModel.cargar(tramiteId) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
@@ -76,15 +70,23 @@ fun DetalleTramiteScreen(
                 onVolver = onVolver
             )
 
-            if (tramiteActual == null) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                MensajeError(viewModel.errorCarga)
+                if (viewModel.errorCarga.isNotEmpty()) {
+                    TextButton(onClick = { viewModel.cargar(tramiteId) }, enabled = !viewModel.cargando) {
+                        Text("Volver a cargar")
+                    }
+                }
+                if (viewModel.cargando || viewModel.procesando) Text("Consultando servidor...")
+            }
+            if (tramiteActual == null && viewModel.errorCarga.isEmpty()) {
                 Text("Cargando trámite...", modifier = Modifier.padding(24.dp))
-            } else {
+            } else if (tramiteActual != null) {
                 ContenidoDetalle(
                     viewModel = viewModel,
                     tramite = tramiteActual,
                     historial = historial,
-                    usuario = usuario,
-                    onSeleccionarArchivo = { selectorArchivo.launch("*/*") }
+                    usuario = usuario
                 )
             }
         }
@@ -109,8 +111,7 @@ private fun ContenidoDetalle(
     viewModel: DetalleTramiteViewModel,
     tramite: Tramite,
     historial: List<Historial>,
-    usuario: Usuario,
-    onSeleccionarArchivo: () -> Unit
+    usuario: Usuario
 ) {
     val context = LocalContext.current
     Column(
@@ -119,27 +120,24 @@ private fun ContenidoDetalle(
     ) {
         DatosTramite(tramite)
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedButton(
-            onClick = {
-                val uri = viewModel.obtenerUriDocumento(tramite)
-                if (uri != null) {
-                    val abrirDocumento = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, tramite.tipoDocumento)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    try {
-                        context.startActivity(abrirDocumento)
-                    } catch (error: ActivityNotFoundException) {
-                        viewModel.mostrarErrorDocumento()
-                    } catch (error: SecurityException) {
-                        viewModel.mostrarErrorDocumento()
-                    }
+        val uriDocumento = viewModel.uriDocumento
+        LaunchedEffect(uriDocumento) {
+            if (uriDocumento != null) {
+                val abrirDocumento = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uriDocumento, viewModel.tipoDocumento)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Ver documento")
+                try { context.startActivity(abrirDocumento) }
+                catch (_: ActivityNotFoundException) { viewModel.mostrarErrorDocumento() }
+                catch (_: SecurityException) { viewModel.mostrarErrorDocumento() }
+                finally { viewModel.documentoAbierto() }
+            }
         }
+        OutlinedButton(
+            onClick = { viewModel.descargarDocumento(tramite) },
+            enabled = !viewModel.descargando && !viewModel.procesando,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (viewModel.descargando) "Descargando documento..." else "Ver documento") }
 
         if (tramite.estado == EstadoTramite.OBSERVADO && tramite.observacion.isNotEmpty()) {
             Card(
@@ -166,11 +164,11 @@ private fun ContenidoDetalle(
         val esNotario = usuario.rol == Roles.NOTARIO
         if (esNotario && tramite.estado == EstadoTramite.ENVIADO) {
             TarjetaSeccion(titulo = "Revisión del notario") {
-                AccionesNotario(viewModel, tramite, usuario)
+                AccionesNotario(viewModel, tramite)
             }
         } else if (!esNotario && tramite.estado == EstadoTramite.OBSERVADO) {
             TarjetaSeccion(titulo = "Corregir trámite") {
-                AccionesCliente(viewModel, tramite, usuario, onSeleccionarArchivo = onSeleccionarArchivo)
+                AccionesCliente(viewModel, tramite)
             }
         } else if (tramite.estado == EstadoTramite.APROBADO) {
             Text("Trámite finalizado. El notario aprobó la solicitud.", color = StatusApproved)
@@ -211,7 +209,7 @@ private fun DatoTramite(nombre: String, valor: String) {
 }
 
 @Composable
-private fun AccionesNotario(viewModel: DetalleTramiteViewModel, tramite: Tramite, notario: Usuario) {
+private fun AccionesNotario(viewModel: DetalleTramiteViewModel, tramite: Tramite) {
     OutlinedTextField(
         value = viewModel.observacion,
         onValueChange = { viewModel.actualizarObservacion(it) },
@@ -223,14 +221,15 @@ private fun AccionesNotario(viewModel: DetalleTramiteViewModel, tramite: Tramite
     MensajeError(viewModel.errorObservacion)
     Spacer(modifier = Modifier.height(12.dp))
     Button(
-        onClick = { viewModel.aprobar(tramite, notario) },
+        onClick = { viewModel.aprobar(tramite) },
+        enabled = !viewModel.procesando && !viewModel.cargando,
         colors = ButtonDefaults.buttonColors(containerColor = StatusApproved),
         modifier = Modifier.fillMaxWidth().height(52.dp)
     ) {
         Text("Aprobar trámite")
     }
     Spacer(modifier = Modifier.height(8.dp))
-    OutlinedButton(onClick = { viewModel.devolver(tramite, notario) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+    OutlinedButton(onClick = { viewModel.devolver(tramite) }, enabled = !viewModel.procesando && !viewModel.cargando, modifier = Modifier.fillMaxWidth().height(52.dp)) {
         Text("Devolver con observaciones")
     }
 }
@@ -238,13 +237,14 @@ private fun AccionesNotario(viewModel: DetalleTramiteViewModel, tramite: Tramite
 @Composable
 private fun AccionesCliente(
     viewModel: DetalleTramiteViewModel,
-    tramite: Tramite,
-    cliente: Usuario,
-    onSeleccionarArchivo: () -> Unit
+    tramite: Tramite
 ) {
-    OutlinedButton(onClick = onSeleccionarArchivo, modifier = Modifier.fillMaxWidth()) {
-        Text("Adjuntar documento corregido")
-    }
+    SelectorDocumento(
+        habilitado = !viewModel.cargandoDocumento && !viewModel.procesando && !viewModel.descargando,
+        onSeleccionar = viewModel::seleccionarArchivo,
+        onPrepararFoto = viewModel::prepararFoto,
+        onErrorCamara = viewModel::mostrarErrorCamara
+    )
     Text(
         if (viewModel.documentoCorregido.isNotEmpty()) "Seleccionado: ${viewModel.documentoCorregido}"
         else "Ningún archivo seleccionado",
@@ -260,7 +260,7 @@ private fun AccionesCliente(
         modifier = Modifier.fillMaxWidth()
     )
     Spacer(modifier = Modifier.height(12.dp))
-    Button(onClick = { viewModel.reenviar(tramite, cliente) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+    Button(onClick = { viewModel.reenviar(tramite) }, enabled = !viewModel.procesando && !viewModel.cargandoDocumento && !viewModel.cargando, modifier = Modifier.fillMaxWidth().height(52.dp)) {
         Text("Reenviar al notario")
     }
 }

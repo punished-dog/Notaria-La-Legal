@@ -14,7 +14,8 @@ import com.duoc.notarialalegal.model.Usuario
 import com.duoc.notarialalegal.model.Validaciones
 import com.duoc.notarialalegal.repository.ArchivoRepository
 import com.duoc.notarialalegal.repository.TramiteRepository
-import kotlinx.coroutines.delay
+import com.duoc.notarialalegal.network.mensajeDeError
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -52,6 +53,8 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
     // Estado de los modales
     var mostrarConfirmacion by mutableStateOf(false)
         private set
+    var errorEnvio by mutableStateOf("")
+        private set
     var firmando by mutableStateOf(false)
         private set
     var codigoCreado by mutableStateOf("")
@@ -69,7 +72,7 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
 
     // Recibe el archivo elegido en el selector de archivos del teléfono
     fun seleccionarArchivo(uri: Uri?) {
-        if (uri == null || cargandoDocumento) return
+        if (uri == null || cargandoDocumento || firmando) return
         cargandoDocumento = true
         errorDocumento = ""
         viewModelScope.launch {
@@ -78,7 +81,7 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
                 archivoAdjunto = copia
                 nombreArchivo = copia.nombre
             } catch (error: IOException) {
-                errorDocumento = "No se pudo copiar el documento. Inténtalo de nuevo."
+                errorDocumento = error.message ?: "No se pudo copiar el documento."
             } catch (error: SecurityException) {
                 errorDocumento = "No se puede acceder al archivo. Selecciónalo nuevamente."
             } finally {
@@ -86,6 +89,15 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
             }
         }
     }
+
+    fun prepararFoto(): Uri? = try {
+        archivoRepository.prepararFoto()
+    } catch (_: Exception) {
+        errorDocumento = "No se pudo preparar la cámara. Inténtalo nuevamente."
+        null
+    }
+
+    fun mostrarErrorCamara() { errorDocumento = "No se pudo abrir la cámara en este dispositivo." }
 
     fun seleccionarFirma(valor: String) {
         tipoFirma = valor
@@ -125,27 +137,32 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    // Se muestra la firma en proceso durante un momento
-    // y luego se guarda el trámite como enviado al notario.
+    // Muestra el progreso mientras Xano guarda el trámite enviado al notario.
     fun firmarYEnviar(usuario: Usuario) {
         if (firmando || cargandoDocumento) return
         firmando = true
+        errorEnvio = ""
         viewModelScope.launch {
-            delay(1500)
-            val tramite = Tramite(
-                tipo = tipo,
-                documento = nombreDocumento(),
-                tipoFirma = tipoFirma,
-                antecedentes = antecedentes.trim(),
-                estado = EstadoTramite.ENVIADO,
-                correoCliente = usuario.correo,
-                rutaDocumento = if (usarFormato) "" else archivoAdjunto?.ruta.orEmpty(),
-                tipoDocumento = if (usarFormato) "application/octet-stream" else archivoAdjunto?.tipo ?: "application/octet-stream"
-            )
-            val guardado = TramiteRepository.crearTramite(tramite, usuario.nombre)
-            firmando = false
-            mostrarConfirmacion = false
-            codigoCreado = guardado.codigo()
+            try {
+                val documento = if (usarFormato) {
+                    withContext(Dispatchers.IO) { archivoRepository.crearFormato(tipo, usuario.nombre, antecedentes.trim()) }
+                } else requireNotNull(archivoAdjunto)
+                val tramite = Tramite(
+                    tipo = tipo,
+                    documento = documento.nombre,
+                    tipoFirma = tipoFirma,
+                    antecedentes = antecedentes.trim(),
+                    estado = EstadoTramite.ENVIADO,
+                    correoCliente = usuario.correo,
+                    rutaDocumento = documento.ruta,
+                    tipoDocumento = documento.tipo
+                )
+                val guardado = TramiteRepository.crearTramite(tramite)
+                mostrarConfirmacion = false
+                codigoCreado = guardado.codigo()
+            } catch (error: CancellationException) { throw error
+            } catch (error: Exception) { errorEnvio = mensajeDeError(error)
+            } finally { firmando = false }
         }
     }
 }

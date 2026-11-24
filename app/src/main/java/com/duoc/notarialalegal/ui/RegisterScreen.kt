@@ -96,8 +96,8 @@ fun RegisterScreen(viewModel: RegisterViewModel, onBack: () -> Unit) {
                 )
                 MensajeError(viewModel.error)
                 Spacer(modifier = Modifier.height(20.dp))
-                Button(onClick = { viewModel.register() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    Text("Registrarme")
+                Button(onClick = { viewModel.register() }, enabled = !viewModel.registrando, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text(if (viewModel.registrando) "Creando cuenta..." else "Registrarme")
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))

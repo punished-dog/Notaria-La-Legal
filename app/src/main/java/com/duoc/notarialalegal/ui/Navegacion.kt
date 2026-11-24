@@ -1,6 +1,7 @@
 package com.duoc.notarialalegal.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -29,6 +30,16 @@ object Rutas {
 fun Navegacion(loginViewModel: LoginViewModel) {
     val navController = rememberNavController()
 
+    LaunchedEffect(loginViewModel.usuario, loginViewModel.revisandoSesion) {
+        if (!loginViewModel.revisandoSesion && loginViewModel.usuario == null &&
+            navController.currentDestination?.route != Rutas.LOGIN &&
+            navController.currentDestination?.route != Rutas.REGISTRO) {
+            navController.navigate(Rutas.LOGIN) {
+                popUpTo(navController.graph.id)
+                launchSingleTop = true
+            }
+        }
+    }
     NavHost(navController = navController, startDestination = Rutas.LOGIN) {
         composable(Rutas.LOGIN) {
             LoginScreen(
@@ -60,9 +71,6 @@ fun Navegacion(loginViewModel: LoginViewModel) {
                     onVerTramite = { id -> navController.navigate(Rutas.detalle(id)) },
                     onLogout = {
                         loginViewModel.logout()
-                        navController.navigate(Rutas.LOGIN) {
-                            popUpTo(Rutas.INICIO) { inclusive = true }
-                        }
                     }
                 )
             }

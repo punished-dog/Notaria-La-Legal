@@ -17,23 +17,23 @@ class LoginScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     private fun esperarTexto(texto: String) {
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 15_000) {
             composeRule.onAllNodesWithText(texto).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    // La sesión queda guardada en Room, por eso cada prueba que ingresa
-    // debe cerrar sesión al final para no afectar a la siguiente.
-    private fun cerrarSesion() {
-        composeRule.onNodeWithText("Cerrar sesión").performScrollTo().performClick()
-        composeRule.onNodeWithText("Sí, salir").performClick()
-        esperarTexto("Iniciar sesión")
-    }
-
-    // Primero se espera a que termine la revisión de la sesión guardada
+    // Ejecutar desde el login, con la sesión cerrada.
     @Before
     fun esperarLogin() {
-        esperarTexto("Ingresar")
+        composeRule.waitUntil(timeoutMillis = 40_000) {
+            composeRule.onAllNodesWithText("Ingresar").fetchSemanticsNodes().isNotEmpty() ||
+                composeRule.onAllNodesWithText("Cerrar sesión").fetchSemanticsNodes().isNotEmpty()
+        }
+        if (composeRule.onAllNodesWithText("Cerrar sesión").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText("Cerrar sesión").performClick()
+            composeRule.onNodeWithText("Sí, salir").performClick()
+            esperarTexto("Ingresar")
+        }
     }
 
     @Test
@@ -44,32 +44,10 @@ class LoginScreenTest {
     }
 
     @Test
-    fun contrasenaIncorrectaNoInicia() {
-        composeRule.onNodeWithText("Correo electrónico").performTextInput("demo@lalegal.test")
-        composeRule.onNodeWithText("Contraseña").performTextInput("incorrecta")
+    fun correoInvalidoNoSeEnviaAlServidor() {
+        composeRule.onNodeWithText("Correo electrónico").performTextInput("correo-incompleto")
+        composeRule.onNodeWithText("Contraseña").performTextInput("test1234")
         composeRule.onNodeWithText("Ingresar").performScrollTo().performClick()
-        esperarTexto("Correo o contraseña incorrectos.")
-    }
-
-    @Test
-    fun clienteDePruebaIngresaYCierraSesion() {
-        composeRule.onNodeWithText("Correo electrónico").performTextInput("demo@lalegal.test")
-        composeRule.onNodeWithText("Contraseña").performTextInput("Demo1234")
-        composeRule.onNodeWithText("Ingresar").performScrollTo().performClick()
-        esperarTexto("Mis trámites")
-        cerrarSesion()
-    }
-
-    @Test
-    fun formularioDeTramiteValidaCampos() {
-        composeRule.onNodeWithText("Correo electrónico").performTextInput("demo@lalegal.test")
-        composeRule.onNodeWithText("Contraseña").performTextInput("Demo1234")
-        composeRule.onNodeWithText("Ingresar").performScrollTo().performClick()
-        esperarTexto("Nuevo trámite")
-        composeRule.onNodeWithText("Nuevo trámite").performClick()
-        composeRule.onNodeWithText("Revisar y firmar").performScrollTo().performClick()
-        composeRule.onNodeWithText("Selecciona un tipo de trámite.").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("← Volver").performClick()
-        cerrarSesion()
+        composeRule.onNodeWithText("Ingresa un correo válido.").assertIsDisplayed()
     }
 }

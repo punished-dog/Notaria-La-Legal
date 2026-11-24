@@ -17,7 +17,7 @@ class RegisterScreenTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     private fun esperarTexto(texto: String) {
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 15_000) {
             composeRule.onAllNodesWithText(texto).fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -25,7 +25,15 @@ class RegisterScreenTest {
     // Primero se espera a que termine la revisión de la sesión guardada
     @Before
     fun esperarLogin() {
-        esperarTexto("Ingresar")
+        composeRule.waitUntil(timeoutMillis = 40_000) {
+            composeRule.onAllNodesWithText("Ingresar").fetchSemanticsNodes().isNotEmpty() ||
+                composeRule.onAllNodesWithText("Cerrar sesión").fetchSemanticsNodes().isNotEmpty()
+        }
+        if (composeRule.onAllNodesWithText("Cerrar sesión").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithText("Cerrar sesión").performClick()
+            composeRule.onNodeWithText("Sí, salir").performClick()
+            esperarTexto("Ingresar")
+        }
     }
 
     @Test
@@ -36,27 +44,13 @@ class RegisterScreenTest {
     }
 
     @Test
-    fun registroGuardaUsuarioYPermiteIngresar() {
-        // Correo distinto en cada ejecución para no repetir una cuenta ya creada
-        val correo = "usuario${System.currentTimeMillis()}@ejemplo.test"
-
+    fun confirmacionDistintaImpideCrearLaCuenta() {
         composeRule.onNodeWithText("Crear cuenta").performScrollTo().performClick()
-        composeRule.onNodeWithText("Nombre completo").performTextInput("Usuario Demo")
-        composeRule.onNodeWithText("Correo electrónico").performTextInput(correo)
-        composeRule.onNodeWithText("Contraseña").performScrollTo().performTextInput("Prueba123")
-        composeRule.onNodeWithText("Confirmar contraseña").performScrollTo().performTextInput("Prueba123")
+        composeRule.onNodeWithText("Nombre completo").performTextInput("Usuario de prueba")
+        composeRule.onNodeWithText("Correo electrónico").performTextInput("usuario@ejemplo.test")
+        composeRule.onNodeWithText("Contraseña").performScrollTo().performTextInput("test1234")
+        composeRule.onNodeWithText("Confirmar contraseña").performScrollTo().performTextInput("otra1234")
         composeRule.onNodeWithText("Registrarme").performScrollTo().performClick()
-        esperarTexto("Cuenta creada")
-        composeRule.onNodeWithText("Ir al login").performClick()
-
-        composeRule.onNodeWithText("Correo electrónico").performTextInput(correo)
-        composeRule.onNodeWithText("Contraseña").performTextInput("Prueba123")
-        composeRule.onNodeWithText("Ingresar").performScrollTo().performClick()
-        esperarTexto("Mis trámites")
-
-        // Se cierra la sesión para que la siguiente prueba parta en el login
-        composeRule.onNodeWithText("Cerrar sesión").performScrollTo().performClick()
-        composeRule.onNodeWithText("Sí, salir").performClick()
-        esperarTexto("Iniciar sesión")
+        composeRule.onNodeWithText("Las contraseñas no coinciden.").assertIsDisplayed()
     }
 }

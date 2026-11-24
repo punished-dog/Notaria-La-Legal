@@ -9,13 +9,14 @@ import androidx.lifecycle.AndroidViewModel
 import com.duoc.notarialalegal.model.Historial
 import com.duoc.notarialalegal.model.DocumentoAdjunto
 import com.duoc.notarialalegal.model.Tramite
-import com.duoc.notarialalegal.model.Usuario
 import com.duoc.notarialalegal.model.Validaciones
 import com.duoc.notarialalegal.repository.ArchivoRepository
 import com.duoc.notarialalegal.repository.TramiteRepository
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CancellationException
+import com.duoc.notarialalegal.network.mensajeDeError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -26,6 +27,51 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
     private var archivoAdjunto: DocumentoAdjunto? = null
     var cargandoDocumento by mutableStateOf(false)
         private set
+
+    var descargando by mutableStateOf(false)
+        private set
+    var uriDocumento by mutableStateOf<Uri?>(null)
+        private set
+    var tipoDocumento by mutableStateOf("")
+        private set
+
+    var cargando by mutableStateOf(false)
+        private set
+    var procesando by mutableStateOf(false)
+        private set
+    var errorCarga by mutableStateOf("")
+        private set
+
+    fun cargar(id: Int) {
+        if (cargando || procesando) return
+        cargando = true
+        errorCarga = ""
+        viewModelScope.launch {
+            try {
+                TramiteRepository.cargarDetalle(id)
+                TramiteRepository.cargarHistorial(id)
+            } catch (error: CancellationException) { throw error
+            } catch (error: Exception) { errorCarga = mensajeDeError(error)
+            } finally { cargando = false }
+        }
+    }
+
+    private fun realizarAccion(id: Int, confirmacion: String, accion: suspend () -> Unit) {
+        if (procesando || cargando || cargandoDocumento || descargando) return
+        procesando = true
+        viewModelScope.launch {
+            try {
+                accion()
+                mensaje = confirmacion
+                // Si el cambio ya se guardó, un fallo de historial no debe repetirlo.
+                try { TramiteRepository.cargarHistorial(id)
+                } catch (error: CancellationException) { throw error
+                } catch (_: Exception) { mensaje += " No se pudo actualizar el historial; vuelve a cargar el detalle." }
+            } catch (error: CancellationException) { throw error
+            } catch (error: Exception) { mensaje = mensajeDeError(error)
+            } finally { procesando = false }
+        }
+    }
 
     // Campo que usa el notario para devolver el trámite
     var observacion by mutableStateOf("")
@@ -58,7 +104,7 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun seleccionarArchivo(uri: Uri?) {
-        if (uri == null || cargandoDocumento) return
+        if (uri == null || cargandoDocumento || procesando) return
         cargandoDocumento = true
         errorCorreccion = ""
         viewModelScope.launch {
@@ -67,7 +113,7 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
                 archivoAdjunto = copia
                 documentoCorregido = copia.nombre
             } catch (error: IOException) {
-                errorCorreccion = "No se pudo copiar el documento. Inténtalo de nuevo."
+                errorCorreccion = error.message ?: "No se pudo copiar el documento."
             } catch (error: SecurityException) {
                 errorCorreccion = "No se puede acceder al archivo. Selecciónalo nuevamente."
             } finally {
@@ -76,22 +122,25 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
-    fun aprobar(tramite: Tramite, notario: Usuario) {
-        TramiteRepository.aprobar(tramite, notario.nombre)
-        mensaje = "El trámite ${tramite.codigo()} fue aprobado."
+    fun aprobar(tramite: Tramite) {
+        realizarAccion(tramite.id, "El trámite ${tramite.codigo()} fue aprobado.") {
+            TramiteRepository.aprobar(tramite.id)
+        }
     }
 
-    fun devolver(tramite: Tramite, notario: Usuario) {
+    fun devolver(tramite: Tramite) {
         errorObservacion = Validaciones.validarTextoMinimo(observacion, "la observación")
         if (errorObservacion.isNotEmpty()) {
             return
         }
-        TramiteRepository.devolver(tramite, observacion.trim(), notario.nombre)
-        observacion = ""
-        mensaje = "El trámite ${tramite.codigo()} fue devuelto al cliente con observaciones."
+        val texto = observacion.trim()
+        realizarAccion(tramite.id, "El trámite fue devuelto con observaciones.") {
+            TramiteRepository.devolver(tramite.id, texto)
+            observacion = ""
+        }
     }
 
-    fun reenviar(tramite: Tramite, cliente: Usuario) {
+    fun reenviar(tramite: Tramite) {
         if (cargandoDocumento) {
             errorCorreccion = "Espera a que termine de guardarse el documento."
             return
@@ -100,21 +149,45 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
             errorCorreccion = "Adjunta el documento corregido antes de reenviar."
             return
         }
-        TramiteRepository.reenviar(tramite, documentoCorregido, comentario, cliente.nombre,
-            archivoAdjunto?.ruta.orEmpty(), archivoAdjunto?.tipo ?: "application/octet-stream")
-        archivoAdjunto = null
-        documentoCorregido = ""
-        comentario = ""
-        mensaje = "La corrección del trámite ${tramite.codigo()} fue enviada al notario."
+        val archivo = archivoAdjunto ?: return
+        val texto = comentario.trim()
+        realizarAccion(tramite.id, "La corrección fue enviada al notario.") {
+            TramiteRepository.reenviar(tramite.id, archivo, texto)
+            archivoAdjunto = null
+            documentoCorregido = ""
+            comentario = ""
+        }
     }
 
-    fun obtenerUriDocumento(tramite: Tramite): Uri? {
-        val uri = archivoRepository.obtenerUri(tramite.rutaDocumento)
-        if (uri == null) {
-            mensaje = "Este trámite solo tiene un documento de ejemplo o un formato simulado. Adjunta un archivo real para poder abrirlo."
-        }
-        return uri
+    fun prepararFoto(): Uri? = try {
+        archivoRepository.prepararFoto()
+    } catch (_: Exception) {
+        errorCorreccion = "No se pudo preparar la cámara. Inténtalo nuevamente."
+        null
     }
+
+    fun mostrarErrorCamara() { errorCorreccion = "No se pudo abrir la cámara en este dispositivo." }
+
+    fun descargarDocumento(tramite: Tramite) {
+        if (descargando || procesando) return
+        descargando = true
+        viewModelScope.launch {
+            try {
+                val documento = TramiteRepository.obtenerDocumento(tramite.id)
+                tipoDocumento = documento.tipo
+                uriDocumento = archivoRepository.obtenerUri(documento.ruta)
+                if (uriDocumento == null) mostrarErrorDocumento()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: retrofit2.HttpException) {
+                mensaje = if (error.code() == 404) "Este trámite no tiene un documento adjunto en el servidor." else mensajeDeError(error)
+            } catch (error: Exception) {
+                mensaje = mensajeDeError(error)
+            } finally { descargando = false }
+        }
+    }
+
+    fun documentoAbierto() { uriDocumento = null }
 
     fun mostrarErrorDocumento() {
         mensaje = "No se pudo abrir el documento. Comprueba que haya una aplicación compatible instalada."

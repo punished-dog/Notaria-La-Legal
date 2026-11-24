@@ -1,5 +1,6 @@
 package com.duoc.notarialalegal.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -10,5 +11,7 @@ data class Sesion(
     @PrimaryKey val id: Int = 1,
     val nombre: String,
     val correo: String,
-    val rol: String
+    val rol: String,
+    @ColumnInfo(defaultValue = "0") val usuarioId: Int = 0,
+    @ColumnInfo(defaultValue = "''") val tokenCifrado: String = ""
 )

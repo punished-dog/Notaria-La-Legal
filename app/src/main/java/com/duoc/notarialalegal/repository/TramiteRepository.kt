@@ -1,111 +1,99 @@
 package com.duoc.notarialalegal.repository
 
-import com.duoc.notarialalegal.model.EstadoTramite
+import android.content.Context
+import com.duoc.notarialalegal.model.DocumentoAdjunto
 import com.duoc.notarialalegal.model.Historial
 import com.duoc.notarialalegal.model.Tramite
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlinx.coroutines.flow.Flow
+import com.duoc.notarialalegal.network.ClienteXano
+import com.duoc.notarialalegal.network.CorreccionSolicitud
+import com.duoc.notarialalegal.network.ObservacionSolicitud
+import com.duoc.notarialalegal.network.TramiteRespuesta
+import com.duoc.notarialalegal.network.TramiteSolicitud
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
-// Los trámites y su historial se mantienen en memoria.
-// Al abrir la app se cargan dos trámites iniciales.
+// Xano es la fuente de los datos. Los StateFlow solo conservan lo mostrado en pantalla.
 object TramiteRepository {
-    private val tramites = MutableStateFlow(
-        listOf(
-            Tramite(
-                id = 2,
-                tipo = "Declaración jurada",
-                documento = "declaracion_domicilio.pdf",
-                tipoFirma = "Firma electrónica avanzada",
-                antecedentes = "Declaración jurada de domicilio solicitada por el banco para abrir una cuenta.",
-                estado = EstadoTramite.OBSERVADO,
-                observacion = "El documento está incompleto: falta la página con la dirección y la firma.",
-                correoCliente = "demo@lalegal.test",
-                fechaCreacion = "26/10/2026 16:40"
-            ),
-            Tramite(
-                id = 1,
-                tipo = "Autorización de documento",
-                documento = "Formato predefinido: Autorización de documento",
-                tipoFirma = "Firma electrónica simple",
-                antecedentes = "Autorización de firma para el contrato de arriendo del departamento.",
-                estado = EstadoTramite.ENVIADO,
-                correoCliente = "demo@lalegal.test",
-                fechaCreacion = "27/10/2026 10:15"
-            )
-        )
-    )
+    private val lista = MutableStateFlow<List<Tramite>>(emptyList())
+    private val movimientos = MutableStateFlow<Map<Int, List<Historial>>>(emptyMap())
+    private var archivos: ArchivoRepository? = null
+    val tramites = lista.asStateFlow()
 
-    private val historial = MutableStateFlow(
-        listOf(
-            Historial(2, EstadoTramite.ENVIADO, "Trámite creado y firmado (Firma electrónica avanzada).", "Juan Doe", "26/10/2026 16:40"),
-            Historial(1, EstadoTramite.ENVIADO, "Trámite creado y firmado (Firma electrónica simple).", "Juan Doe", "27/10/2026 10:15"),
-            Historial(2, EstadoTramite.OBSERVADO, "El documento está incompleto: falta la página con la dirección y la firma.", "Ricardo Muñoz", "27/10/2026 09:05")
-        )
-    )
-
-    private var siguienteId = 3
-
-    // Al usar Flow, las pantallas se actualizan solas cuando cambia la lista
-    fun obtenerTodos(): Flow<List<Tramite>> = tramites
-
-    fun obtenerDeCliente(correo: String): Flow<List<Tramite>> {
-        return tramites.map { lista -> lista.filter { it.correoCliente == correo } }
+    fun inicializar(context: Context) { archivos = ArchivoRepository(context.applicationContext) }
+    fun obtenerPorId(id: Int) = lista.map { it.find { tramite -> tramite.id == id } }
+    fun obtenerHistorial(id: Int) = movimientos.map { it[id].orEmpty() }
+    fun limpiar() {
+        lista.value = emptyList()
+        movimientos.value = emptyMap()
     }
-
-    fun obtenerPorId(id: Int): Flow<Tramite?> {
-        return tramites.map { lista -> lista.find { it.id == id } }
+    // Una respuesta de la cuenta anterior nunca debe llenar la pantalla de una nueva sesión.
+    private fun comprobarSesion(token: String) {
+        if (token != SesionActual.token) throw CancellationException("La sesión cambió")
     }
-
-    // El más reciente aparece primero
-    fun obtenerHistorial(tramiteId: Int): Flow<List<Historial>> {
-        return historial.map { lista -> lista.filter { it.tramiteId == tramiteId }.reversed() }
+    private fun convertir(respuesta: TramiteRespuesta): Tramite {
+        return respuesta.aTramite(SesionActual.usuario)
     }
-
-    // Guarda el trámite ya firmado y lo deja enviado al notario
-    fun crearTramite(tramite: Tramite, responsable: String): Tramite {
-        val nuevoTramite = tramite.copy(id = siguienteId, estado = EstadoTramite.ENVIADO, fechaCreacion = fechaActual())
-        siguienteId++
-        tramites.value = listOf(nuevoTramite) + tramites.value
-        registrarCambio(nuevoTramite.id, EstadoTramite.ENVIADO, "Trámite creado y firmado (${tramite.tipoFirma}).", responsable)
-        return nuevoTramite
+    private fun actualizar(tramite: Tramite) {
+        lista.value = (listOf(tramite) + lista.value.filter { it.id != tramite.id }).sortedByDescending { it.id }
     }
-
-    fun aprobar(tramite: Tramite, responsable: String) {
-        actualizar(tramite.copy(estado = EstadoTramite.APROBADO, observacion = ""))
-        registrarCambio(tramite.id, EstadoTramite.APROBADO, "El notario aprobó el trámite.", responsable)
+    suspend fun cargarLista() {
+        val token = SesionActual.token
+        val respuesta = ClienteXano.api.listarTramites()
+        comprobarSesion(token)
+        lista.value = respuesta.map { convertir(it) }
     }
-
-    fun devolver(tramite: Tramite, observacion: String, responsable: String) {
-        actualizar(tramite.copy(estado = EstadoTramite.OBSERVADO, observacion = observacion))
-        registrarCambio(tramite.id, EstadoTramite.OBSERVADO, observacion, responsable)
+    suspend fun cargarDetalle(id: Int) {
+        val token = SesionActual.token
+        val respuesta = ClienteXano.api.detalle(id)
+        comprobarSesion(token)
+        actualizar(convertir(respuesta))
     }
-
-    // El cliente corrige el documento y lo vuelve a enviar
-    fun reenviar(tramite: Tramite, nuevoDocumento: String, comentario: String, responsable: String,
-                 rutaDocumento: String, tipoDocumento: String) {
-        actualizar(tramite.copy(estado = EstadoTramite.ENVIADO, documento = nuevoDocumento, observacion = "",
-            rutaDocumento = rutaDocumento, tipoDocumento = tipoDocumento))
-        var detalle = "Corrección enviada con el documento $nuevoDocumento."
-        if (comentario.isNotBlank()) {
-            detalle += " Comentario: ${comentario.trim()}"
+    suspend fun cargarHistorial(id: Int) {
+        val token = SesionActual.token
+        val respuesta = ClienteXano.api.historial(id)
+        comprobarSesion(token)
+        movimientos.value = movimientos.value + (id to respuesta.map { it.aHistorial() })
+    }
+    suspend fun crearTramite(tramite: Tramite): Tramite {
+        val token = SesionActual.token
+        val contenido = withContext(Dispatchers.IO) {
+            requireNotNull(archivos).convertirBase64(tramite.rutaDocumento)
         }
-        registrarCambio(tramite.id, EstadoTramite.ENVIADO, detalle, responsable)
+        val respuesta = ClienteXano.api.crearTramite(TramiteSolicitud(
+            tramite.tipo, tramite.documento, tramite.tipoFirma, tramite.antecedentes,
+            contenido, tramite.tipoDocumento))
+        comprobarSesion(token)
+        val nuevo = convertir(respuesta)
+        actualizar(nuevo)
+        return nuevo
     }
-
-    // Reemplaza el trámite que tiene el mismo id
-    private fun actualizar(tramiteActualizado: Tramite) {
-        tramites.value = tramites.value.map { if (it.id == tramiteActualizado.id) tramiteActualizado else it }
+    suspend fun obtenerDocumento(id: Int): DocumentoAdjunto {
+        val token = SesionActual.token
+        val respuesta = ClienteXano.api.documento(id)
+        comprobarSesion(token)
+        return withContext(Dispatchers.IO) { requireNotNull(archivos).guardarDescarga(respuesta) }
     }
-
-    private fun registrarCambio(tramiteId: Int, estado: String, detalle: String, responsable: String) {
-        historial.value = historial.value + Historial(tramiteId, estado, detalle, responsable, fechaActual())
+    suspend fun aprobar(id: Int) {
+        val token = SesionActual.token
+        val respuesta = ClienteXano.api.aprobar(id)
+        comprobarSesion(token)
+        actualizar(convertir(respuesta))
     }
-
-    private fun fechaActual(): String {
-        return SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+    suspend fun devolver(id: Int, observacion: String) {
+        val token = SesionActual.token
+        val respuesta = ClienteXano.api.devolver(id, ObservacionSolicitud(observacion))
+        comprobarSesion(token)
+        actualizar(convertir(respuesta))
+    }
+    suspend fun reenviar(id: Int, documento: DocumentoAdjunto, comentario: String) {
+        val token = SesionActual.token
+        val contenido = withContext(Dispatchers.IO) { requireNotNull(archivos).convertirBase64(documento.ruta) }
+        val respuesta = ClienteXano.api.reenviar(id, CorreccionSolicitud(documento.nombre, comentario, contenido, documento.tipo))
+        comprobarSesion(token)
+        actualizar(convertir(respuesta))
     }
 }

@@ -7,6 +7,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModelProvider
+import com.duoc.notarialalegal.repository.TramiteRepository
 import com.duoc.notarialalegal.ui.Navegacion
 import com.duoc.notarialalegal.ui.theme.NotariaLaLegalTheme
 import com.duoc.notarialalegal.viewmodel.LoginViewModel
@@ -14,6 +15,7 @@ import com.duoc.notarialalegal.viewmodel.LoginViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        TramiteRepository.inicializar(applicationContext)
         // Barras del sistema con íconos oscuros, porque el fondo de la app es claro
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),

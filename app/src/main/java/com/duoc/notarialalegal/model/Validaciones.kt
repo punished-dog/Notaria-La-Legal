@@ -18,8 +18,8 @@ object Validaciones {
     fun validarContrasena(contrasena: String): String {
         return if (contrasena.isBlank()) {
             "Ingresa tu contraseña."
-        } else if (contrasena.length < 6) {
-            "La contraseña debe tener al menos 6 caracteres."
+        } else if (contrasena.length < 8) {
+            "La contraseña debe tener al menos 8 caracteres."
         } else {
             ""
         }
