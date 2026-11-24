@@ -52,10 +52,14 @@ dependencies {
     // Navegación entre pantallas
     implementation(libs.androidx.navigation.compose)
 
-    // Room para guardar usuarios y trámites en el teléfono
+    // Room para guardar la sesión en el teléfono
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // Retrofit para consumir la API de Xano
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
