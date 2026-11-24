@@ -6,22 +6,37 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import com.duoc.notarialalegal.model.Historial
+import androidx.lifecycle.viewModelScope
 import com.duoc.notarialalegal.model.DocumentoAdjunto
+import com.duoc.notarialalegal.model.Historial
+import com.duoc.notarialalegal.model.Mensajes
 import com.duoc.notarialalegal.model.Tramite
 import com.duoc.notarialalegal.model.Usuario
 import com.duoc.notarialalegal.model.Validaciones
 import com.duoc.notarialalegal.repository.ArchivoRepository
 import com.duoc.notarialalegal.repository.TramiteRepository
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
 class DetalleTramiteViewModel(application: Application) : AndroidViewModel(application) {
     private val archivoRepository = ArchivoRepository(application)
+    private val tramiteRepository = TramiteRepository()
+
+    // Datos que se cargan desde la API
+    var tramite by mutableStateOf<Tramite?>(null)
+        private set
+    var historial by mutableStateOf<List<Historial>>(emptyList())
+        private set
+    var cargando by mutableStateOf(false)
+        private set
+    var errorCarga by mutableStateOf("")
+        private set
+
+    // Es true mientras se envía una acción a la API (aprobar, devolver, reenviar o eliminar)
+    var procesando by mutableStateOf(false)
+        private set
 
     private var archivoAdjunto: DocumentoAdjunto? = null
     var cargandoDocumento by mutableStateOf(false)
@@ -44,9 +59,20 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
     var mensaje by mutableStateOf("")
         private set
 
-    fun obtenerTramite(id: Int): Flow<Tramite?> = TramiteRepository.obtenerPorId(id)
-
-    fun obtenerHistorial(id: Int): Flow<List<Historial>> = TramiteRepository.obtenerHistorial(id)
+    fun cargar(id: Int) {
+        cargando = true
+        errorCarga = ""
+        viewModelScope.launch {
+            try {
+                tramite = tramiteRepository.obtenerPorId(id)
+                historial = tramiteRepository.obtenerHistorial(id)
+            } catch (excepcion: IOException) {
+                errorCarga = Mensajes.SIN_CONEXION
+            } finally {
+                cargando = false
+            }
+        }
+    }
 
     fun actualizarObservacion(valor: String) {
         observacion = valor
@@ -66,9 +92,9 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
                 val copia = withContext(Dispatchers.IO) { archivoRepository.guardarCopia(uri) }
                 archivoAdjunto = copia
                 documentoCorregido = copia.nombre
-            } catch (error: IOException) {
+            } catch (excepcion: IOException) {
                 errorCorreccion = "No se pudo copiar el documento. Inténtalo de nuevo."
-            } catch (error: SecurityException) {
+            } catch (excepcion: SecurityException) {
                 errorCorreccion = "No se puede acceder al archivo. Selecciónalo nuevamente."
             } finally {
                 cargandoDocumento = false
@@ -77,8 +103,9 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun aprobar(tramite: Tramite, notario: Usuario) {
-        TramiteRepository.aprobar(tramite, notario.nombre)
-        mensaje = "El trámite ${tramite.codigo()} fue aprobado."
+        ejecutarAccion(tramite.id, "El trámite ${tramite.codigo()} fue aprobado.") {
+            tramiteRepository.aprobar(tramite, notario.nombre)
+        }
     }
 
     fun devolver(tramite: Tramite, notario: Usuario) {
@@ -86,9 +113,10 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
         if (errorObservacion.isNotEmpty()) {
             return
         }
-        TramiteRepository.devolver(tramite, observacion.trim(), notario.nombre)
-        observacion = ""
-        mensaje = "El trámite ${tramite.codigo()} fue devuelto al cliente con observaciones."
+        ejecutarAccion(tramite.id, "El trámite ${tramite.codigo()} fue devuelto al cliente con observaciones.") {
+            tramiteRepository.devolver(tramite, observacion.trim(), notario.nombre)
+            observacion = ""
+        }
     }
 
     fun reenviar(tramite: Tramite, cliente: Usuario) {
@@ -100,18 +128,37 @@ class DetalleTramiteViewModel(application: Application) : AndroidViewModel(appli
             errorCorreccion = "Adjunta el documento corregido antes de reenviar."
             return
         }
-        TramiteRepository.reenviar(tramite, documentoCorregido, comentario, cliente.nombre,
-            archivoAdjunto?.ruta.orEmpty(), archivoAdjunto?.tipo ?: "application/octet-stream")
-        archivoAdjunto = null
-        documentoCorregido = ""
-        comentario = ""
-        mensaje = "La corrección del trámite ${tramite.codigo()} fue enviada al notario."
+        ejecutarAccion(tramite.id, "La corrección del trámite ${tramite.codigo()} fue enviada al notario.") {
+            tramiteRepository.reenviar(tramite, documentoCorregido, comentario, cliente.nombre,
+                archivoAdjunto?.ruta.orEmpty(), archivoAdjunto?.tipo ?: "application/octet-stream")
+            archivoAdjunto = null
+            documentoCorregido = ""
+            comentario = ""
+        }
+    }
+
+    // Envía la acción a la API y, si resulta, vuelve a cargar el trámite para mostrar el nuevo estado
+    private fun ejecutarAccion(tramiteId: Int, mensajeExito: String, accion: suspend () -> Unit) {
+        if (procesando) return
+        procesando = true
+        viewModelScope.launch {
+            try {
+                accion()
+                mensaje = mensajeExito
+                tramite = tramiteRepository.obtenerPorId(tramiteId)
+                historial = tramiteRepository.obtenerHistorial(tramiteId)
+            } catch (excepcion: IOException) {
+                mensaje = Mensajes.SIN_CONEXION
+            } finally {
+                procesando = false
+            }
+        }
     }
 
     fun obtenerUriDocumento(tramite: Tramite): Uri? {
         val uri = archivoRepository.obtenerUri(tramite.rutaDocumento)
         if (uri == null) {
-            mensaje = "Este trámite solo tiene un documento de ejemplo o un formato simulado. Adjunta un archivo real para poder abrirlo."
+            mensaje = "Este trámite usa un formato predefinido o su archivo no está guardado en este teléfono."
         }
         return uri
     }

@@ -173,6 +173,7 @@ fun NuevoTramiteScreen(viewModel: NuevoTramiteViewModel, usuario: Usuario, onTer
                     } else {
                         Text("Al confirmar, el trámite se enviará al notario para su revisión.")
                     }
+                    MensajeError(viewModel.errorEnvio)
                 }
             },
             confirmButton = {

@@ -21,14 +21,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,9 +51,12 @@ fun HomeScreen(
     onLogout: () -> Unit
 ) {
     val esNotario = usuario.rol == Roles.NOTARIO
-    // La lista se actualiza sola cuando cambia un trámite
-    val tramites by remember(usuario) { viewModel.obtenerTramites(usuario) }
-        .collectAsState(initial = emptyList())
+    val tramites = viewModel.tramites
+
+    // Se piden los trámites a la API cada vez que se vuelve a esta pantalla
+    LaunchedEffect(usuario) {
+        viewModel.cargarTramites(usuario)
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -125,7 +127,25 @@ fun HomeScreen(
                 }
             }
 
-            if (tramites.isEmpty()) {
+            if (viewModel.cargando && tramites.isEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            } else if (viewModel.error.isNotEmpty()) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                        MensajeError(viewModel.error)
+                        TextButton(onClick = { viewModel.cargarTramites(usuario) }) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+            } else if (tramites.isEmpty()) {
                 item {
                     Text(
                         "Todavía no hay trámites registrados.",

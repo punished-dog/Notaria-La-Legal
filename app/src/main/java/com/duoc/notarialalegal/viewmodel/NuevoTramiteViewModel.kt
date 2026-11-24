@@ -7,21 +7,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.duoc.notarialalegal.model.EstadoTramite
 import com.duoc.notarialalegal.model.DocumentoAdjunto
+import com.duoc.notarialalegal.model.EstadoTramite
+import com.duoc.notarialalegal.model.Mensajes
 import com.duoc.notarialalegal.model.Tramite
 import com.duoc.notarialalegal.model.Usuario
 import com.duoc.notarialalegal.model.Validaciones
 import com.duoc.notarialalegal.repository.ArchivoRepository
 import com.duoc.notarialalegal.repository.TramiteRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
-import kotlinx.coroutines.launch
 
 class NuevoTramiteViewModel(application: Application) : AndroidViewModel(application) {
     private val archivoRepository = ArchivoRepository(application)
+    private val tramiteRepository = TramiteRepository()
 
     private var archivoAdjunto: DocumentoAdjunto? = null
     var cargandoDocumento by mutableStateOf(false)
@@ -55,6 +57,8 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
     var firmando by mutableStateOf(false)
         private set
     var codigoCreado by mutableStateOf("")
+        private set
+    var errorEnvio by mutableStateOf("")
         private set
 
     fun seleccionarTipo(valor: String) {
@@ -122,14 +126,16 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
     fun cancelarConfirmacion() {
         if (!firmando) {
             mostrarConfirmacion = false
+            errorEnvio = ""
         }
     }
 
     // Se muestra la firma en proceso durante un momento
-    // y luego se guarda el trámite como enviado al notario.
+    // y luego se envía el trámite a la API como enviado al notario.
     fun firmarYEnviar(usuario: Usuario) {
         if (firmando || cargandoDocumento) return
         firmando = true
+        errorEnvio = ""
         viewModelScope.launch {
             delay(1500)
             val tramite = Tramite(
@@ -142,10 +148,15 @@ class NuevoTramiteViewModel(application: Application) : AndroidViewModel(applica
                 rutaDocumento = if (usarFormato) "" else archivoAdjunto?.ruta.orEmpty(),
                 tipoDocumento = if (usarFormato) "application/octet-stream" else archivoAdjunto?.tipo ?: "application/octet-stream"
             )
-            val guardado = TramiteRepository.crearTramite(tramite, usuario.nombre)
-            firmando = false
-            mostrarConfirmacion = false
-            codigoCreado = guardado.codigo()
+            try {
+                val guardado = tramiteRepository.crearTramite(tramite, usuario.nombre)
+                mostrarConfirmacion = false
+                codigoCreado = guardado.codigo()
+            } catch (excepcion: IOException) {
+                errorEnvio = Mensajes.SIN_CONEXION
+            } finally {
+                firmando = false
+            }
         }
     }
 }

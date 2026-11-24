@@ -28,9 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
@@ -53,8 +51,10 @@ fun DetalleTramiteScreen(
     usuario: Usuario,
     onVolver: () -> Unit
 ) {
-    val tramite by remember(tramiteId) { viewModel.obtenerTramite(tramiteId) }.collectAsState(initial = null)
-    val historial by remember(tramiteId) { viewModel.obtenerHistorial(tramiteId) }.collectAsState(initial = emptyList())
+    // Se carga el trámite y su historial desde la API al abrir la pantalla
+    LaunchedEffect(tramiteId) {
+        viewModel.cargar(tramiteId)
+    }
 
     val selectorArchivo = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -69,20 +69,27 @@ fun DetalleTramiteScreen(
                 .imePadding()
                 .verticalScroll(rememberScrollState())
         ) {
-            val tramiteActual = tramite
+            val tramiteActual = viewModel.tramite
             EncabezadoApp(
                 titulo = tramiteActual?.codigo() ?: "Trámite",
                 subtitulo = tramiteActual?.tipo ?: "",
                 onVolver = onVolver
             )
 
-            if (tramiteActual == null) {
+            if (viewModel.errorCarga.isNotEmpty()) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    MensajeError(viewModel.errorCarga)
+                    TextButton(onClick = { viewModel.cargar(tramiteId) }) {
+                        Text("Reintentar")
+                    }
+                }
+            } else if (tramiteActual == null) {
                 Text("Cargando trámite...", modifier = Modifier.padding(24.dp))
             } else {
                 ContenidoDetalle(
                     viewModel = viewModel,
                     tramite = tramiteActual,
-                    historial = historial,
+                    historial = viewModel.historial,
                     usuario = usuario,
                     onSeleccionarArchivo = { selectorArchivo.launch("*/*") }
                 )
@@ -224,13 +231,18 @@ private fun AccionesNotario(viewModel: DetalleTramiteViewModel, tramite: Tramite
     Spacer(modifier = Modifier.height(12.dp))
     Button(
         onClick = { viewModel.aprobar(tramite, notario) },
+        enabled = !viewModel.procesando,
         colors = ButtonDefaults.buttonColors(containerColor = StatusApproved),
         modifier = Modifier.fillMaxWidth().height(52.dp)
     ) {
         Text("Aprobar trámite")
     }
     Spacer(modifier = Modifier.height(8.dp))
-    OutlinedButton(onClick = { viewModel.devolver(tramite, notario) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+    OutlinedButton(
+        onClick = { viewModel.devolver(tramite, notario) },
+        enabled = !viewModel.procesando,
+        modifier = Modifier.fillMaxWidth().height(52.dp)
+    ) {
         Text("Devolver con observaciones")
     }
 }
@@ -260,7 +272,11 @@ private fun AccionesCliente(
         modifier = Modifier.fillMaxWidth()
     )
     Spacer(modifier = Modifier.height(12.dp))
-    Button(onClick = { viewModel.reenviar(tramite, cliente) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+    Button(
+        onClick = { viewModel.reenviar(tramite, cliente) },
+        enabled = !viewModel.procesando,
+        modifier = Modifier.fillMaxWidth().height(52.dp)
+    ) {
         Text("Reenviar al notario")
     }
 }
