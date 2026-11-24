@@ -27,3 +27,8 @@ object Catalogo {
         "Firma ante notario"
     )
 }
+
+// Mensaje que se muestra cuando falla la conexión con la API
+object Mensajes {
+    const val SIN_CONEXION = "No se pudo conectar con el servidor. Revisa tu conexión a internet e inténtalo de nuevo."
+}

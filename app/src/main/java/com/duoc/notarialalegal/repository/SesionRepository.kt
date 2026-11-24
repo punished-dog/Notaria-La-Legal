@@ -14,7 +14,7 @@ class SesionRepository(private val dao: SesionDao) {
 
     suspend fun obtenerSesion(): Usuario? {
         val sesion = dao.obtener() ?: return null
-        return Usuario(nombre = sesion.nombre, correo = sesion.correo, contrasena = "", rol = sesion.rol)
+        return Usuario(nombre = sesion.nombre, correo = sesion.correo, rol = sesion.rol)
     }
 
     suspend fun cerrarSesion() {

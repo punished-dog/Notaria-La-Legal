@@ -1,27 +1,33 @@
 package com.duoc.notarialalegal.repository
 
-import com.duoc.notarialalegal.model.Roles
 import com.duoc.notarialalegal.model.Usuario
+import com.duoc.notarialalegal.remote.ApiService
+import com.duoc.notarialalegal.remote.RetrofitInstance
+import com.duoc.notarialalegal.remote.SolicitudLogin
+import com.duoc.notarialalegal.remote.SolicitudRegistro
+import com.duoc.notarialalegal.remote.aModelo
+import com.duoc.notarialalegal.remote.llamarApi
 
-// Los usuarios se guardan en memoria.
-// Las cuentas creadas en el registro duran mientras la app está abierta.
-object UsuarioRepository {
-    private val usuarios = mutableListOf(
-        Usuario("Juan Doe", "demo@lalegal.test", "Demo1234", Roles.CLIENTE),
-        Usuario("Ricardo Muñoz", "notario@lalegal.test", "Notario123", Roles.NOTARIO)
-    )
+// Las cuentas de usuario se guardan en Xano.
+// El ApiService se recibe por parámetro para poder probar el repositorio sin internet.
+class UsuarioRepository(private val api: ApiService = RetrofitInstance.api) {
 
-    fun iniciarSesion(correo: String, contrasena: String): Usuario? {
-        return usuarios.find { it.correo == correo.lowercase() && it.contrasena == contrasena }
+    // Primero se obtiene el token con el correo y la contraseña,
+    // y con ese token se piden los datos del usuario (nombre y rol).
+    // Devuelve null si el correo o la contraseña no son correctos.
+    suspend fun iniciarSesion(correo: String, contrasena: String): Usuario? {
+        val respuestaLogin = llamarApi { api.iniciarSesion(SolicitudLogin(correo.lowercase(), contrasena)) }
+        val token = respuestaLogin.body()?.authToken
+        if (!respuestaLogin.isSuccessful || token == null) {
+            return null
+        }
+        val respuestaUsuario = llamarApi { api.obtenerUsuarioActual("Bearer $token") }
+        return respuestaUsuario.body()?.aModelo()
     }
 
-    // Devuelve false si ya existe una cuenta con ese correo
-    fun registrar(nombre: String, correo: String, contrasena: String): Boolean {
-        val correoNormalizado = correo.lowercase()
-        if (usuarios.any { it.correo == correoNormalizado }) {
-            return false
-        }
-        usuarios.add(Usuario(nombre, correoNormalizado, contrasena))
-        return true
+    // Devuelve false si Xano rechaza el registro, por ejemplo si el correo ya existe
+    suspend fun registrar(nombre: String, correo: String, contrasena: String): Boolean {
+        val respuesta = llamarApi { api.registrar(SolicitudRegistro(nombre, correo.lowercase(), contrasena)) }
+        return respuesta.isSuccessful
     }
 }

@@ -4,10 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.duoc.notarialalegal.model.Mensajes
 import com.duoc.notarialalegal.model.Validaciones
 import com.duoc.notarialalegal.repository.UsuarioRepository
+import kotlinx.coroutines.launch
+import java.io.IOException
 
 class RegisterViewModel : ViewModel() {
+    private val usuarioRepository = UsuarioRepository()
+
     var name by mutableStateOf("")
         private set
     var email by mutableStateOf("")
@@ -19,6 +25,8 @@ class RegisterViewModel : ViewModel() {
     var error by mutableStateOf("")
         private set
     var registrationComplete by mutableStateOf(false)
+        private set
+    var cargando by mutableStateOf(false)
         private set
 
     fun updateName(value: String) {
@@ -50,16 +58,25 @@ class RegisterViewModel : ViewModel() {
         if (error.isEmpty()) error = Validaciones.validarCorreo(email)
         if (error.isEmpty()) error = Validaciones.validarContrasena(password)
         if (error.isEmpty()) error = Validaciones.validarConfirmacion(password, confirmPassword)
-        if (error.isNotEmpty()) {
+        if (error.isNotEmpty() || cargando) {
             return
         }
 
-        if (UsuarioRepository.registrar(name, email, password)) {
-            password = ""
-            confirmPassword = ""
-            registrationComplete = true
-        } else {
-            error = "Ya existe una cuenta con ese correo."
+        cargando = true
+        viewModelScope.launch {
+            try {
+                if (usuarioRepository.registrar(name, email, password)) {
+                    password = ""
+                    confirmPassword = ""
+                    registrationComplete = true
+                } else {
+                    error = "No se pudo crear la cuenta. Es posible que el correo ya esté registrado."
+                }
+            } catch (excepcion: IOException) {
+                error = Mensajes.SIN_CONEXION
+            } finally {
+                cargando = false
+            }
         }
     }
 }

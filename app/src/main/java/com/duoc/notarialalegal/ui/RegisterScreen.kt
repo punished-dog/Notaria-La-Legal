@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -24,6 +26,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -96,8 +99,20 @@ fun RegisterScreen(viewModel: RegisterViewModel, onBack: () -> Unit) {
                 )
                 MensajeError(viewModel.error)
                 Spacer(modifier = Modifier.height(20.dp))
-                Button(onClick = { viewModel.register() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    Text("Registrarme")
+                Button(
+                    onClick = { viewModel.register() },
+                    enabled = !viewModel.cargando,
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    if (viewModel.cargando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    } else {
+                        Text("Registrarme")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))

@@ -118,11 +118,11 @@ fun LoginScreen(viewModel: LoginViewModel, onRegister: () -> Unit, onLoginSucces
 
                         Button(
                             onClick = { viewModel.login() },
-                            enabled = !viewModel.revisandoSesion,
+                            enabled = !viewModel.cargando,
                             modifier = Modifier.fillMaxWidth().height(52.dp)
                         ) {
-                            // Mientras se revisa si hay una sesión guardada se muestra un indicador de carga
-                            if (viewModel.revisandoSesion) {
+                            // Mientras se revisa la sesión guardada o se espera a la API se muestra un indicador de carga
+                            if (viewModel.cargando) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
